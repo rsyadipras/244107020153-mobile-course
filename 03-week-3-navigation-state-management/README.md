@@ -10,12 +10,12 @@
 
 > Dokumentasi praktikum Pemrograman Mobile — Minggu 3
 
-| Informasi | Detail |
-| --- | --- |
-| **Nama** | Risky Adi Prasetya |
-| **NIM** | 244107020153 |
+| Informasi         | Detail             |
+| ----------------- | ------------------ |
+| **Nama**          | Risky Adi Prasetya |
+| **NIM**           | 244107020153       |
 | **Program Studi** | Teknik Informatika |
-| **Kelas** | TI-3E |
+| **Kelas**         | TI-3E              |
 
 ## Daftar Isi
 
@@ -32,6 +32,7 @@
 ---
 
 ## Tujuan Pembelajaran
+
 - menjelaskan konsep navigasi, route, dan perbedaan Navigator 1.0 dengan GoRouter;
 - menerapkan navigasi multi-page dengan GoRouter, termasuk passing argument dan deep link sederhana;
 - menjelaskan mengapa state management diperlukan dan cara kerja Riverpod (`Provider`, `ConsumerWidget`, `Notifier`);
@@ -40,12 +41,12 @@
 
 ## Tech Stack
 
-| Komponen | Detail |
-|---|---|
-| Framework | Flutter & Dart |
-| IDE | VS Code |
-| Device | Smartphone Infinix |
-| Version Control | GitHub |
+| Komponen        | Detail             |
+| --------------- | ------------------ |
+| Framework       | Flutter & Dart     |
+| IDE             | VS Code            |
+| Device          | Smartphone Infinix |
+| Version Control | GitHub             |
 
 ## Struktur Folder
 
@@ -65,6 +66,7 @@ Struktur folder yang digunakan untuk tugas minggu ini:
 ├── 03-state-management/
 └── 03-week-3-navigation-state-management/
 ```
+
 ---
 
 ## Aplikasi Multi-page dengan GoRouter
@@ -192,6 +194,7 @@ class DetailPage extends StatelessWidget {
 </p>
 
 ## ToDo - State Management dengan Riverpod
+
 ### Membuat Project
 
 ```bash
@@ -342,6 +345,7 @@ class TodoPage extends ConsumerWidget {
   }
 }
 ```
+
 ### Hasil implementasi:
 
   <p align="center">
@@ -350,7 +354,6 @@ class TodoPage extends ConsumerWidget {
     <i>Hasil state management + <code>Riverpod</code></i>
   </p>
 
-
 ## AsyncValue: Loading, Error, Success
 
 1. Salin kode `AsyncNotifier` ke project ToDo atau project terpisah.
@@ -358,9 +361,9 @@ class TodoPage extends ConsumerWidget {
 3. Ubah `build()` sementara untuk melempar error: `throw Exception('Gagal terhubung ke server');`.
 4. Amati UI error dan tombol **Coba lagi**.
 5. Pulihkan kode, tekan **Coba lagi**, lalu pastikan state success tampil.
-6. Catat refleksi tentang kapan stale data dengan indikator refresh lebih baik daripada mengosongkan layar.
 
 ### Hasil Implementasi:
+
   <p align="center">
     <video src="03-state-management/screenshots/first-test-async.mp4" width="50%" autoplay loop muted playsinline></video>
     <br>
@@ -379,10 +382,13 @@ class TodoPage extends ConsumerWidget {
     <i>Hasil refresh validation test</i>
   </p>
 
+> Menampilkan data lama (stale data) dengan indikator refresh jauh lebih baik daripada mengosongkan layar karena pengguna bisa mengetahui apa yang sedang terjadi semisal terdapat data baru yang sedang diunduh, atau koneksi yang terputus, dsb. Pola ini sangat penting diterapkan pada fitur seperti timeline media sosial, dashboard statistik, dan kondisi aplikasi dengan jaringan yang kurang stabil agar pengguna tidak dihadapkan pada layar loading kosong yang membingungkan.
+
 ## AI Challenge
+
 ### AI Prompt Challenge
 
-Gunakan prompt berikut:
+Prompt AI :
 
 ```text
 Buatkan halaman Flutter bernama StatsPage menggunakan flutter_riverpod.
@@ -395,18 +401,30 @@ Requirements:
 Jelaskan setiap bagian kode dalam komentar.
 ```
 
+### AI Verification Checklist
+
+Verifikasi implementasi AI pada folder [`03-ai-prompt/`](03-ai-prompt/):
+
+| No. | Pemeriksaan                                                                   | Status | Keterangan                                                                                                                           |
+| :-: | ----------------------------------------------------------------------------- | :----: | ------------------------------------------------------------------------------------------------------------------------------------ |
+|  1  | Apakah state diubah secara immutable (tidak ada state.add() atau mutasi list langsung)?                                         | Lulus  | Tidak ada `state.add()` atau mutasi list langsung.                                                                                   |
+|  2  | Apakah `ref.watch` hanya dipakai di dalam build, dan `ref.read` di callback? | Lulus  | `ref.watch` digunakan di `build`. Callback retry menggunakan `ref.invalidate(statsProvider)` untuk memuat ulang provider.            |
+|  3  | Apakah ketiga state AsyncValue benar-benar ditangani (bukan hanya success)?                                     | Lulus  | State `loading`, `error`, dan `data` ditangani melalui `AsyncValue.when`.                                                            |
+|  4  | Apakah provider dideklarasikan dengan tipe eksplisit dan tidak duplikat dengan provider lain?                   | Lulus  | Menggunakan satu `AsyncNotifierProvider<StatsNotifier, List<Statistic>>`.                                                            |
+|  5  | Apakah kode AI memakai API Riverpod versi lama (`StateProvider` antipattern, `StateNotifierProvider` usang, atau `Consumer` bertingkat yang tidak perlu)? Perbaiki ke pola Notifier/ConsumerWidget.                                  | Lulus  | Menggunakan `AsyncNotifier`, `AsyncNotifierProvider`, dan `ConsumerWidget`, bukan `StateProvider` atau `StateNotifierProvider` lama. |
+|  6  | Jalankan `flutter analyze` dan `flutter test`, apakah hasil AI lolos tanpa warning?                              | Lulus  | `flutter analyze` menghasilkan **No issues found** dan `flutter test` menghasilkan **All tests passed**.                             |
+
 ### Dokumentasi AI
 
-Simpan artefak berikut di folder `docs/`:
-
-| Dokumen | Lokasi | Status |
-| --- | --- | --- |
-| Prompt yang digunakan | `docs/ai-prompt.md` | Isi setelah AI Challenge |
-| Output awal AI | `docs/ai-output-awal.md` | Isi setelah AI Challenge |
-| Perbaikan dan alasan teknis | `docs/ai-perbaikan.md` | Isi setelah verifikasi |
-| Hasil testing | `docs/ai-testing.md` | Isi setelah testing |
+Artefak dalam folder `docs/`:
+| Dokumen | Lokasi |
+| --- | --- |
+| Prompt yang digunakan | [`docs/ai-prompt.md`](docs/ai-prompt.md) |
+| Output awal AI | [`docs/ai-output-awal.md`](docs/ai-output-awal.md) |
+| Hasil testing | [`docs/ai-testing.md`](docs/ai-testing.md) |
 
 ## Refactoring dan Testing
+
 ### Refactoring Challenge
 
 Lakukan refactoring berikut pada aplikasi ToDo, lalu commit dengan pesan yang jelas:
@@ -438,10 +456,10 @@ flutter test
 
 ### Hasil Testing
 
-| Perintah | Hasil
-| --- | ---
-| `flutter analyze` | Lulus / Gagal
-| `flutter test` | Lulus / Gagal
+| Perintah          | Hasil         |
+| ----------------- | ------------- |
+| `flutter analyze` | Lulus / Gagal |
+| `flutter test`    | Lulus / Gagal |
 
 ## Tugas dan Refleksi
 
@@ -460,16 +478,13 @@ Bangun **aplikasi ToDo dengan navigasi dan Riverpod** sebagai tugas minggu ini:
 
    **Jawaban:**
 
-
 2. Apa perbedaan `context.go` dan `context.push`, dan kapan masing-masing tepat digunakan?
 
    **Jawaban:**
 
-
 3. Bagaimana `AsyncValue` mencegah bug dibanding tiga boolean terpisah?
 
    **Jawaban:**
-
 
 4. Bagian mana dari hasil AI yang Anda perbaiki, dan mengapa?
 

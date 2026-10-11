@@ -1,5 +1,4 @@
-# Week 01 - Mobile Development Ecosystem Flutter Refresh
-
+# Week 02 - Declarative and UI Responsive Design
 <p align="left">
   <img src="https://img.shields.io/badge/Flutter-02569B?style=for-the-badge&logo=flutter&logoColor=white" alt="Flutter">
   <img src="https://img.shields.io/badge/Dart-0175C2?style=for-the-badge&logo=dart&logoColor=white" alt="Dart">

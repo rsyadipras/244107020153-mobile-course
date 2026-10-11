@@ -342,53 +342,16 @@ class TodoPage extends ConsumerWidget {
   }
 }
 ```
-**Catatan implementasi:**
+### Hasil implementasi:
 
-> ???
+  <p align="center">
+    <video src="03-state-management/screenshots/state-management.mp4" width="75%" autoplay loop muted playsinline></video>
+    <br>
+    <i>Hasil state management + <code>Riverpod</code></i>
+  </p>
 
 
 ## AsyncValue: Loading, Error, Success
-
-### Masalah State Asinkron
-
-Banyak state berasal dari proses asinkron seperti membaca database atau memanggil API. UI perlu menangani tiga kemungkinan:
-
-- **loading** — proses sedang berjalan;
-- **error** — proses gagal;
-- **success** — data siap ditampilkan.
-
-`AsyncValue<T>` memodelkan ketiga kondisi tersebut dalam satu tipe sehingga lebih aman daripada mengelola beberapa boolean secara manual.
-
-### AsyncNotifier
-
-```dart
-class ProductsNotifier extends AsyncNotifier<List<String>> {
-  @override
-  Future<List<String>> build() async {
-    await Future.delayed(const Duration(seconds: 2));
-    return ['Keyboard', 'Mouse', 'Monitor'];
-  }
-
-  Future<void> refresh() async {
-    state = const AsyncLoading();
-    state = await AsyncValue.guard(() => _fetch());
-  }
-
-  Future<List<String>> _fetch() async {
-    await Future.delayed(const Duration(seconds: 1));
-    return ['Keyboard', 'Mouse', 'Monitor', 'Headset'];
-  }
-}
-
-final productsProvider =
-    AsyncNotifierProvider<ProductsNotifier, List<String>>(
-  ProductsNotifier.new,
-);
-```
-
-> `AsyncValue.guard` otomatis menangkap exception dan mengubahnya menjadi `AsyncError`.
-
-## Praktikum 3 — Uji Ketiga State
 
 1. Salin kode `AsyncNotifier` ke project ToDo atau project terpisah.
 2. Jalankan aplikasi dan amati loading selama dua detik pertama.
@@ -396,6 +359,8 @@ final productsProvider =
 4. Amati UI error dan tombol **Coba lagi**.
 5. Pulihkan kode, tekan **Coba lagi**, lalu pastikan state success tampil.
 6. Catat refleksi tentang kapan stale data dengan indikator refresh lebih baik daripada mengosongkan layar.
+
+### Hasil Implementasi:
 
 ## AI Challenge
 ### AI Prompt Challenge

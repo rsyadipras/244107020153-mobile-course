@@ -180,13 +180,13 @@ class DetailPage extends StatelessWidget {
 **Hasil Implementasi:**
 
 <p align="center">
-  <video src="03-navigation\screenshots\nav-goRouter.mp4" width="75%" autoplay loop muted playsinline></video>
+  <video src="03-navigation\screenshots\nav-goRouter.mp4" width="40%" autoplay loop muted playsinline></video>
   <br>
   <i>Hasil navigasi + <code>GoRouter</code></i>
 </p>
 
 <p align="center">
-  <video src="03-navigation\screenshots\nav-goRouter-mobile.mp4" width="75%" autoplay loop muted playsinline></video>
+  <video src="03-navigation\screenshots\nav-goRouter-mobile.mp4" width="40%" autoplay loop muted playsinline></video>
   <br>
   <i>Hasil navigasi + <code>GoRouter</code> versi Mobile</i>
 </p>
@@ -345,7 +345,7 @@ class TodoPage extends ConsumerWidget {
 ### Hasil implementasi:
 
   <p align="center">
-    <video src="03-state-management/screenshots/state-management.mp4" width="75%" autoplay loop muted playsinline></video>
+    <video src="03-state-management/screenshots/state-management.mp4" width="50%" autoplay loop muted playsinline></video>
     <br>
     <i>Hasil state management + <code>Riverpod</code></i>
   </p>
@@ -361,6 +361,23 @@ class TodoPage extends ConsumerWidget {
 6. Catat refleksi tentang kapan stale data dengan indikator refresh lebih baik daripada mengosongkan layar.
 
 ### Hasil Implementasi:
+  <p align="center">
+    <video src="03-state-management/screenshots/first-test-async.mp4" width="50%" autoplay loop muted playsinline></video>
+    <br>
+    <i>Hasil testing pertama async value</i>
+  </p>
+
+  <p align="center">
+    <video src="03-state-management/screenshots/err-build.mp4" width="50%" autoplay loop muted playsinline></video>
+    <br>
+    <i>Hasil throw error build</i>
+  </p>
+
+  <p align="center">
+    <video src="03-state-management/screenshots/ref-validate-test.mp4" width="95%" autoplay loop muted playsinline></video>
+    <br>
+    <i>Hasil refresh validation test</i>
+  </p>
 
 ## AI Challenge
 ### AI Prompt Challenge

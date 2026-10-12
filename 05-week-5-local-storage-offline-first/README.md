@@ -170,11 +170,12 @@ class DarkModeNotifier extends AsyncNotifier<bool> {
 }
 ```
 
-> Hindari memanggil `SharedPreferences.getInstance()` langsung dari `build()` widget. Repository dan provider membuat akses lebih terpusat, mudah diuji, serta konsisten dengan arsitektur aplikasi.
-
-**Catatan implementasi preferensi:**
-
-> Isi hasil pengujian toggle tema dan waktu terakhir dibuka.
+**Hasil Implementasi:**
+<p align="center">
+  <video src="screenshots/Practicum1.mp4" alt="SharedPreferences result" width="50%" muted autoplay loop></video>
+  <br>
+  <i>Tampilan halaman pengaturan dengan toggle tema gelap/terang dan waktu terakhir dibuka.</i>
+</p>
 
 ---
 
@@ -353,9 +354,12 @@ Halaman catatan harus tetap berfungsi dalam mode pesawat. Tampilkan:
 - badge jumlah catatan yang belum tersinkron (`dirty`);
 - tombol atau aksi untuk menjalankan sinkronisasi.
 
-**Catatan implementasi halaman:**
-
-> Isi hasil pengujian CRUD dan tampilan badge dirty.
+**Hasil implementasi halaman:**
+<p align="center">
+  <video src="screenshots/practicum1.1.mp4" alt="Result" width="50%" muted autoplay loop></video>
+  <br>
+  <i>Hasil implementasi halaman catatan offline.</i>
+</p>
 
 ---
 
@@ -364,14 +368,6 @@ Halaman catatan harus tetap berfungsi dalam mode pesawat. Tampilkan:
 ### 1. Cache-First Read untuk Data API
 
 Gunakan kembali endpoint Minggu 4, yaitu `GET /posts` dari JSONPlaceholder.
-
-Alur cache-first:
-
-1. Baca cache lokal dari tabel `cached_posts`.
-2. Kembalikan cache segera agar UI tidak blank saat offline.
-3. Ambil data terbaru dari Dio di background.
-4. Simpan hasil jaringan ke `cached_posts`.
-5. Invalidate provider agar UI membaca data terbaru.
 
 Contoh bentuk fungsi:
 
@@ -382,9 +378,6 @@ Future<List<Post>> loadPostsCacheFirst() async {
   return cached;
 }
 ```
-
-> Implementasikan `readCachedPosts()` dan `refreshPostsInBackground()` sesuai arsitektur project. Jangan menghapus cache lama sebelum data baru berhasil disimpan.
-
 ### 2. Sinkronisasi Catatan Dirty
 
 Karena codelab ini belum memiliki backend tulis, gunakan simulasi delay:
@@ -400,8 +393,6 @@ Future<int> syncNotes(NoteRepository repo) async {
 }
 ```
 
-Pada project nyata, setiap catatan dirty dikirim ke REST API dan baru ditandai bersih setelah server menjawab status 2xx.
-
 ### 3. Simulasi Offline yang Deterministik
 
 Sediakan toggle `forceOffline` pada provider agar demo dan testing tidak bergantung pada kondisi Wi-Fi:
@@ -413,17 +404,16 @@ Sediakan toggle `forceOffline` pada provider agar demo dan testing tidak bergant
 - jalankan `syncNotes`;
 - pastikan badge kembali menjadi 0.
 
-Dokumentasikan langkah dan hasil observasi melalui screenshot di folder `screenshots/`.
-
 ### 4. Aturan Konflik
 
-Tetapkan satu aturan konflik dan dokumentasikan secara eksplisit. Contoh:
-
-> *Last-write-wins* berdasarkan nilai `updated_at`.
-
 **Aturan konflik yang dipilih:**
+*Last-write-wins* berdasarkan nilai `updated_at`.
 
-> Isi aturan konflik yang digunakan pada project.
+<p align="center">
+  <video src="screenshots/Practicum1.mp4" alt="SharedPreferences result" width="50%" muted autoplay loop></video>
+  <br>
+  <i>Tampilan halaman pengaturan dengan toggle tema gelap/terang dan waktu terakhir dibuka.</i>
+</p>
 
 ---
 

@@ -11,7 +11,7 @@ class NoteRepository {
 
   Future<List<Note>> fetchNotes() async {
     final db = await _openDb();
-    final rows = await db.query('notes', orderBy: 'updated_at DESC');
+    final rows = await db.query('notes', orderBy: 'id DESC');
     return rows.map(Note.fromMap).toList();
   }
 

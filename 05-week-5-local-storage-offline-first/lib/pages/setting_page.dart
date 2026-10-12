@@ -1,22 +1,40 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../data/prefs.dart';
 
-final prefsRepositoryProvider = Provider((ref) => PrefsRepository());
-final darkModeProvider =
-    AsyncNotifierProvider<DarkModeNotifier, bool>(DarkModeNotifier.new);
+import '../data/providers/notes_providers.dart';
 
-class DarkModeNotifier extends AsyncNotifier<bool> {
+class SettingsPage extends ConsumerWidget {
+  const SettingsPage({super.key});
+
   @override
-  Future<bool> build() =>
-      ref.watch(prefsRepositoryProvider).getDarkMode();
+  Widget build(BuildContext context, WidgetRef ref) {
+    final darkMode = ref.watch(darkModeProvider);
+    final lastOpened = ref.watch(lastOpenedProvider);
 
-  Future<void> toggle() async {
-    final next = !(state.value ?? false);
-    state = const AsyncLoading();
-    state = await AsyncValue.guard(() async {
-      await ref.read(prefsRepositoryProvider).setDarkMode(next);
-      return next;
-    });
+    return Scaffold(
+      appBar: AppBar(title: const Text('Pengaturan')),
+      body: ListView(
+        children: [
+          SwitchListTile(
+            title: const Text('Mode gelap'),
+            subtitle: const Text('Simpan preferensi dengan SharedPreferences'),
+            value: darkMode.value ?? false,
+            onChanged: darkMode.isLoading
+                ? null
+                : (_) => ref.read(darkModeProvider.notifier).toggle(),
+          ),
+          const Divider(),
+          ListTile(
+            leading: const Icon(Icons.access_time),
+            title: const Text('Terakhir dibuka'),
+            subtitle: lastOpened.when(
+              loading: () => const Text('Memuat...'),
+              error: (error, _) => Text('Gagal membaca: $error'),
+              data: (value) => Text(value ?? 'Belum ada data'),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

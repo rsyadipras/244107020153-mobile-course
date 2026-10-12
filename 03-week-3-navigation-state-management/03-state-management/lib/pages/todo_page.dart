@@ -2,13 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../providers/todo_provider.dart';
+import '../widgets/todo_tile.dart';
 
 class TodoPage extends ConsumerWidget {
   const TodoPage({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final todos = ref.watch(todoListProvider);
+    // Menggunakan provider turunan agar halaman hanya menampilkan tugas aktif
+    final todos = ref.watch(incompleteTodosProvider);
 
     return Scaffold(
       appBar: AppBar(title: const Text('ToDo Riverpod')),
@@ -16,25 +18,14 @@ class TodoPage extends ConsumerWidget {
           ? const Center(child: Text('Belum ada tugas'))
           : ListView.builder(
               itemCount: todos.length,
-              itemBuilder: (context, index) => ListTile(
-                leading: Checkbox(
-                  value: todos[index].done,
-                  onChanged: (_) =>
-                      ref.read(todoListProvider.notifier).toggle(index),
-                ),
-                title: Text(
-                  todos[index].title,
-                  style: TextStyle(
-                    decoration: todos[index].done
-                        ? TextDecoration.lineThrough
-                        : null,
-                  ),
-                ),
-                trailing: IconButton(
-                  icon: const Icon(Icons.delete),
-                  onPressed: () =>
-                      ref.read(todoListProvider.notifier).remove(index),
-                ),
+              itemBuilder: (context, index) => TodoTile(
+                todo: todos[index],
+                onToggle: () => ref
+                    .read(todoListProvider.notifier)
+                    .toggleTodo(todos[index]),
+                onDelete: () => ref
+                    .read(todoListProvider.notifier)
+                    .removeTodo(todos[index]),
               ),
             ),
       floatingActionButton: FloatingActionButton(

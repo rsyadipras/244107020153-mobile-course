@@ -438,11 +438,11 @@ class MyApp extends StatelessWidget {
   </p>
 
 3. Ubah sementara `baseUrl` menjadi URL yang salah dan amati pesan error koneksi. Kembalikan `baseUrl` setelah pengujian selesai.
-  <p align="center">
-    <video src="screenshots/baseUrl-test.mp4" width="90%" autoplay loop muted playsinline></video>
-    <br>
-    <i>Hasil uji coba dengan baseUrl yang salah sekaligus mengembalikan ke semula</i>
-  </p>
+<p align="center">
+  <video src="screenshots/baseUrl-test.mp4" width="90%" autoplay loop muted playsinline></video>
+  <br>
+  <i>Hasil uji coba dengan baseUrl yang salah sekaligus mengembalikan ke semula</i>
+</p>
 
 ---
 
@@ -550,9 +550,11 @@ final pagedPostsProvider =
 ```
 
 Guard penting:
+
 ```dart
 if (state.isLoadingMore || !state.hasMore) return;
 ```
+
 Guard tersebut mencegah request ganda ketika listener scroll terpanggil berkali-kali dan menghentikan request ketika data sudah habis.
 
 ### 9. UI Infinite Scroll
@@ -653,6 +655,7 @@ class _PagedPostPageState
 ```
 
 **Hasil Pagination:**
+
   <p align="center">
     <video src="screenshots/pagination-01.mp4" width="75%" autoplay loop muted playsinline></video>
     <br>
@@ -687,23 +690,36 @@ Jelaskan setiap bagian kode dalam komentar.
 
 ### AI Verification Checklist
 
-- [ ] UI tidak memanggil Dio secara langsung; UI menggunakan repository.
-- [ ] `fromJson` aman null dan tidak memakai cast langsung yang dapat crash.
-- [ ] `DioExceptionType` timeout, connection error, dan bad response dipetakan ke pesan pengguna.
-- [ ] Base URL dan timeout terpusat di satu client.
-- [ ] Test menguji field yang hilang, bukan hanya happy path.
-- [ ] Ditambahkan minimal satu edge case sendiri.
-- [ ] `flutter analyze` dan `flutter test` selesai tanpa warning/error.
+1. **Apakah UI memanggil Dio secara langsung (dilarang) atau lewat repository?**
+   - UI hanya memanggil `commentsProvider(1)`, sedangkan Dio dipakai lewat repository melalui provider. Dapat diverifikasi pada `lib/pages/comment_page.dart`.
+
+2. **Apakah `fromJson` aman null, atau masih memakai cast langsung yang bisa crash?**
+   - `fromJson` aman untuk null, karena field numerik memakai `(json[...] as num?)?.toInt() ?? 0`, sedangkan field teks memakai `as String? ?? ''`. Dapat diverifikasi pada `lib/data/models/comment.dart`
+
+3. **Apakah `DioExceptionType` timeout, connection error, dan bad response dipetakan ke pesan pengguna?**
+   - Ya, `DioExceptionType` timeout, `connectionError`, HTTP 404, dan HTTP 500 memiliki pesan khusus. Dapat diverifikasi pada `lib/data/comment_provider.dart`
+
+4. **Apakah Base URL dan timeout terpusat di satu client?**
+   - Base URL serta `connectTimeout`, `sendTimeout`, dan `receiveTimeout` 10 detik terpusat di `lib/data/api_client.dart`. Repository hanya menggunakan instance Dio tersebut.
+
+5. **Apakah test menguji field yang hilang, bukan hanya happy path?**
+   - Ya, test sudah menguji field yang hilang, bukan hanya happy path. Dapat diverifikasi pada test `Comment.fromJson mengisi default saat field hilang` di `test/comment_test.dart`.
+
+6. **Apakah ditambahkan minimal satu edge case sendiri?**
+   - Ya, ditambahkan edge case `Comment.fromJson aman saat semua field bernilai null` di `test/comment_test.dart`.
+
+7. **Apakah `flutter analyze` dan `flutter test` selesai tanpa warning/error?**
+   - `flutter analyze` sudah aman tanpa issue. `flutter test` untuk `test/comment_test.dart` juga aman.
 
 ### Dokumentasi AI
 
-Simpan artefak AI di folder `docs/`:
+Artefak AI di folder `docs/`:
 
-| Dokumen               | Lokasi                   |
-| --------------------- | ------------------------ |
-| Prompt yang digunakan | `docs/ai-prompt.md`      |
-| Output awal AI        | `docs/ai-output-awal.md` |
-| Hasil testing         | `docs/ai-testing.md`     |
+| Dokumen               | Lokasi                                             |
+| --------------------- | -------------------------------------------------- |
+| Prompt yang digunakan | [`docs/ai-prompt.md`](docs/ai-prompt.md)           |
+| Output awal AI        | [`docs/ai-output-awal.md`](docs/ai-output-awal.md) |
+| Hasil testing         | [`docs/ai-testing.md`](docs/ai-testing.md)         |
 
 ## Refactoring dan Testing
 

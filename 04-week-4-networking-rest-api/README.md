@@ -5,7 +5,7 @@
   <img src="https://img.shields.io/badge/Dart-0175C2?style=for-the-badge&logo=dart&logoColor=white" alt="Dart">
   <img src="https://img.shields.io/badge/Dio-546E7A?style=for-the-badge" alt="Dio">
   <img src="https://img.shields.io/badge/Riverpod-2E7D32?style=for-the-badge" alt="Riverpod">
-  <img src="https://img.shields.io/badge/Status-On Progress-brightgreen?style=for-the-badge" alt="Status">
+  <img src="https://img.shields.io/badge/Status-Done-brightgreen?style=for-the-badge" alt="Status">
 </p>
 
 > Dokumentasi praktikum Pemrograman Mobile — Minggu 4

@@ -831,12 +831,18 @@ flutter analyze
 flutter test
 ```
 
+<p align="center">
+    <img src="screenshots/testing-result.png" width="75%" alt="Hasil Testing"></img>
+    <br>
+    <i>Hasil Testing: unit test model + mock repository</i>
+  </p>
+
 ### Hasil Testing
 
-| Perintah          | Hasil         |
-| ----------------- | ------------- |
-| `flutter analyze` | Lulus / Gagal |
-| `flutter test`    | Lulus / Gagal |
+| Perintah          | Hasil |
+| ----------------- | ----- |
+| `flutter analyze` | Lulus |
+| `flutter test`    | Lulus |
 
 ## Tugas, Refleksi
 
@@ -861,23 +867,30 @@ README tugas menjelaskan:
 - hasil yang dicapai.
 
 ### Refleksi
-
-Tuliskan jawaban Anda sendiri:
-
 1. Mengapa UI dilarang memanggil Dio langsung? Apa yang rusak jika aturan ini dilanggar?
 
-   **Jawaban:**
+   - UI hanya mengurus tampilan dan interaksi pengguna, sedangkan Dio
+   ditempatkan di repository melalui provider. Jika UI memanggil Dio langsung, logika
+   networking akan tersebar di banyak widget, sulit diuji dan digunakan ulang, serta
+   perubahan base URL, timeout, interceptor, atau format response harus dilakukan di
+   banyak tempat. Pemisahan ini juga menjaga agar widget tidak bergantung langsung pada
+   detail implementasi HTTP.
 
 2. Kapan pagination client-side cukup, dan kapan harus mengandalkan pagination server (`_page`/`_limit`)?
 
-   **Jawaban:**
+   - Pagination client-side cukup jika jumlah datanya kecil, dan seluruh data lebih praktis dimuat sekali ke perangkat.
+   - Pagination server lebih tepat untuk data besar atau terus berubah, karena hanya sebagian data yang dikirim pada setiap request sehingga penggunaan bandwidth, waktu loading, dan memori lebih rendah.
+   - Parameter seperti `_page` dan `_limit` juga memungkinkan aplikasi mengambil data secara bertahap melalui infinite scroll.
 
 3. Bagaimana exception repository berubah menjadi `AsyncError` tanpa try/catch di setiap widget? Kapan try/catch eksplisit tetap dibutuhkan?
 
-   **Jawaban:**
+   - Pada `AsyncNotifier`, future yang dikembalikan oleh method `build` diketahui oleh Riverpod. Jika repository melempar exception, future tersebut otomatis menghasilkan `AsyncError`, sehingga widget cukup menangani state melalui `when(loading:, error:, data:)`.
+   - `try/catch` eksplisit dibutuhkan ketika ingin mengubah state secara manual, misalnya pada method `refresh` atau `loadNextPage`, mempertahankan data lama saat pemuatan halaman berikutnya gagal, menampilkan pesan
+   khusus, melakukan retry, atau menjalankan recovery dan logging tertentu.
 
 4. Bagian mana dari hasil AI yang Anda perbaiki, dan mengapa?
-
-   **Jawaban:**
-
+    - Bagian ektraksi baris post menjadi
+   widget `PostTile`, memindahkan `friendlyErrorMessage` ke `data/network_errors.dart`,
+   dan menambahkan halaman detail dengan GoRouter pada route `/post/:id` Perbaikan ini dilakukan supaya `ListView.builder` lebih singkat, logika error dapat digunakan ulang,
+   dan alur navigasi serta pengambilan detail tetap konsisten dan mudah diuji.
 ---

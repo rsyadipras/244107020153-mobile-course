@@ -491,12 +491,68 @@ Implementasikan `PagedPostsNotifier` dengan method:
 - guard ganda agar request tidak dipanggil berulang;
 - data lama tetap dipertahankan saat request halaman berikutnya gagal.
 
-Guard penting:
+```dart
+class PagedPostsNotifier extends Notifier<PagedPostsState> {
+  @override
+  PagedPostsState build() {
+    Future.microtask(loadFirstPage);
+    return const PagedPostsState();
+  }
 
+  Future<void> loadFirstPage() async {
+    final repository = ref.read(postRepositoryProvider);
+    try {
+      final items =
+          await repository.fetchPostsPage(page: 1, limit: 10);
+      state = PagedPostsState(
+        items: items,
+        page: 1,
+        hasMore: items.length == 10,
+      );
+    } catch (e) {
+      state = PagedPostsState(error: e);
+    }
+  }
+
+  Future<void> loadNextPage() async {
+    if (state.isLoadingMore || !state.hasMore) return;
+    final repo = ref.read(postRepositoryProvider);
+    final currentItems = state.items;
+    final currentPage = state.page;
+    state = PagedPostsState(
+      items: currentItems,
+      page: currentPage,
+      isLoadingMore: true,
+      hasMore: state.hasMore,
+    );
+    try {
+      final next = currentPage + 1;
+      final items =
+          await repo.fetchPostsPage(page: next, limit: 10);
+      state = PagedPostsState(
+        items: [...currentItems, ...items],
+        page: next,
+        hasMore: items.length == 10,
+      );
+    } catch (e) {
+      state = PagedPostsState(
+        items: currentItems,
+        page: currentPage,
+        error: e,
+      );
+    }
+  }
+}
+
+final pagedPostsProvider =
+    NotifierProvider<PagedPostsNotifier, PagedPostsState>(
+        PagedPostsNotifier.new);
+```
+
+Guard penting:
 ```dart
 if (state.isLoadingMore || !state.hasMore) return;
 ```
-
 Guard tersebut mencegah request ganda ketika listener scroll terpanggil berkali-kali dan menghentikan request ketika data sudah habis.
 
 ### 9. UI Infinite Scroll
@@ -506,23 +562,107 @@ File: `lib/pages/paged_post_page.dart`
 Gunakan `ScrollController` untuk memanggil `loadNextPage()` sekitar 200 pixel sebelum ujung list:
 
 ```dart
-if (_controller.position.pixels >=
-    _controller.position.maxScrollExtent - 200) {
-  ref.read(pagedPostsProvider.notifier).loadNextPage();
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../data/paged_posts.dart';
+import '../data/providers.dart';
+
+class PagedPostPage extends ConsumerStatefulWidget {
+  const PagedPostPage({super.key});
+
+  @override
+  ConsumerState<PagedPostPage> createState() =>
+      _PagedPostPageState();
+}
+
+class _PagedPostPageState
+    extends ConsumerState<PagedPostPage> {
+  final _controller = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    _controller.addListener(() {
+      if (_controller.position.pixels >=
+          _controller.position.maxScrollExtent - 200) {
+        ref.read(pagedPostsProvider.notifier).loadNextPage();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final state = ref.watch(pagedPostsProvider);
+    if (state.error != null && state.items.isEmpty) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Posts Paged')),
+        body: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(friendlyErrorMessage(state.error!)),
+              const SizedBox(height: 12),
+              FilledButton(
+                onPressed: () => ref
+                    .read(pagedPostsProvider.notifier)
+                    .loadFirstPage(),
+                child: const Text('Coba lagi'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+    return Scaffold(
+      appBar: AppBar(title: const Text('Posts Paged')),
+      body: ListView.builder(
+        controller: _controller,
+        itemCount: state.items.length + 1,
+        itemBuilder: (context, index) {
+          if (index == state.items.length) {
+            if (!state.hasMore) {
+              return const Padding(
+                padding: EdgeInsets.all(16),
+                child:
+                    Center(child: Text('Semua data termuat.')),
+              );
+            }
+            return const Padding(
+              padding: EdgeInsets.all(16),
+              child: Center(child: CircularProgressIndicator()),
+            );
+          }
+          final post = state.items[index];
+          return ListTile(
+            leading: CircleAvatar(
+                child: Text(post.id.toString())),
+            title: Text(post.title,
+                maxLines: 1, overflow: TextOverflow.ellipsis),
+          );
+        },
+      ),
+    );
+  }
 }
 ```
 
-Pastikan:
-
-- `ScrollController` dilepas pada `dispose`;
-- data lama tidak dihapus ketika memuat halaman baru;
-- indikator loading tampil di bawah list;
-- pesan `Semua data termuat.` tampil saat `hasMore == false`;
-- error halaman pertama dan error halaman berikutnya memiliki tampilan yang sesuai.
-
-**Catatan hasil pagination:**
-
-> Isi setelah mencoba scroll sampai bawah dan memverifikasi halaman berikutnya termuat.
+**Hasil Pagination:**
+  <p align="center">
+    <video src="screenshots/pagination-01.mp4" width="75%" autoplay loop muted playsinline></video>
+    <br>
+    <i>Hasil uji coba pagination 01</i>
+  </p>
+    <p align="center">
+    <video src="screenshots/pagination-02.mp4" width="75%" autoplay loop muted playsinline></video>
+    <br>
+    <i>Hasil uji coba pagination 02</i>
+  </p>
 
 ---
 
@@ -559,11 +699,11 @@ Jelaskan setiap bagian kode dalam komentar.
 
 Simpan artefak AI di folder `docs/`:
 
-| Dokumen               | Lokasi                   | Status                   |
-| --------------------- | ------------------------ | ------------------------ |
-| Prompt yang digunakan | `docs/ai-prompt.md`      | Isi setelah AI Challenge |
-| Output awal AI        | `docs/ai-output-awal.md` | Isi setelah AI Challenge |
-| Hasil testing         | `docs/ai-testing.md`     | Isi setelah testing      |
+| Dokumen               | Lokasi                   |
+| --------------------- | ------------------------ |
+| Prompt yang digunakan | `docs/ai-prompt.md`      |
+| Output awal AI        | `docs/ai-output-awal.md` |
+| Hasil testing         | `docs/ai-testing.md`     |
 
 ## Refactoring dan Testing
 

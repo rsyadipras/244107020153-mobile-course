@@ -200,8 +200,6 @@ class PostRepository {
 
 File: `lib/data/providers.dart`
 
-Implementasikan provider dengan tanggung jawab berikut:
-
 - `dioProvider` menyediakan instance Dio;
 - `postRepositoryProvider` menyediakan repository;
 - `PostListNotifier` mengambil daftar post;
@@ -209,9 +207,14 @@ Implementasikan provider dengan tanggung jawab berikut:
 - `friendlyErrorMessage()` mengubah error jaringan menjadi pesan yang dapat dipahami pengguna;
 - provider dapat dioverride dengan repository palsu saat testing.
 
-Contoh pola provider:
-
 ```dart
+import 'package:dio/dio.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'dart:async';
+import 'api_client.dart';
+import 'models/post.dart';
+import 'repositories/post_repository.dart';
+
 final dioProvider = Provider<Dio>((ref) => createDio());
 
 final postRepositoryProvider = Provider<PostRepository>(
@@ -220,7 +223,9 @@ final postRepositoryProvider = Provider<PostRepository>(
 
 class PostListNotifier extends AsyncNotifier<List<Post>> {
   @override
-  Future<List<Post>> build() {
+  Future<List<Post>> build() async {
+    // Exception dari repository otomatis menjadi AsyncError.
+    // Inilah ekuivalen deklaratif dari AsyncValue.guard di versi lama.
     final repository = ref.watch(postRepositoryProvider);
     return repository.fetchPosts();
   }
@@ -230,35 +235,156 @@ class PostListNotifier extends AsyncNotifier<List<Post>> {
     try {
       final repository = ref.read(postRepositoryProvider);
       state = AsyncData(await repository.fetchPosts());
-    } catch (error, stackTrace) {
-      state = AsyncError(error, stackTrace);
+    } catch (e, st) {
+      state = AsyncError(e, st);
     }
   }
 }
 
 final postListProvider =
     AsyncNotifierProvider<PostListNotifier, List<Post>>(
-  PostListNotifier.new,
-  retry: (retryCount, error) => null,
-);
+        PostListNotifier.new,
+        // Nonaktifkan retry otomatis Riverpod 3 agar error langsung
+        // final dan mudah diuji (tanpa ini, future provider di-test
+        // akan me-retry dan menggantung).
+        retry: (retryCount, error) => null);
+
+/// Helper khusus testing (letakkan di providers.dart): membaca state
+/// pertama yang bukan loading lewat listener + completer, sehingga
+/// test tidak menunggu retry dan tidak melakukan HTTP sungguhan.
+Future<List<Post>> readPostsOnce(ProviderContainer container) {
+  final completer = Completer<List<Post>>();
+  final sub = container.listen<AsyncValue<List<Post>>>(
+    postListProvider,
+    (previous, next) {
+      if (next.isLoading || completer.isCompleted) return;
+      next.whenData(completer.complete);
+      if (next.hasError) {
+        completer.completeError(
+          next.error ?? StateError('unknown error'),
+          next.stackTrace ?? StackTrace.empty,
+        );
+      }
+    },
+    fireImmediately: true,
+  );
+  return completer.future.whenComplete(sub.close);
+}
+
+Future<Object?> readPostsErrorOnce(ProviderContainer container) {
+  final completer = Completer<Object?>();
+  final sub = container.listen<AsyncValue<List<Post>>>(
+    postListProvider,
+    (previous, next) {
+      if (next.isLoading || completer.isCompleted) return;
+      completer.complete(next.error);
+    },
+    fireImmediately: true,
+  );
+  return completer.future.whenComplete(sub.close);
+}
+
+String friendlyErrorMessage(Object error) {
+  if (error is DioException) {
+    switch (error.type) {
+      case DioExceptionType.connectionTimeout:
+      case DioExceptionType.sendTimeout:
+      case DioExceptionType.receiveTimeout:
+        return 'Koneksi lambat atau timeout. Periksa internet Anda lalu coba lagi.';
+      case DioExceptionType.connectionError:
+        return 'Tidak dapat terhubung ke server. Periksa internet Anda.';
+      case DioExceptionType.badResponse:
+        final code = error.response?.statusCode;
+        if (code == 404) return 'Data tidak ditemukan (404).';
+        if (code == 401 || code == 403) {
+          return 'Akses ditolak ($code). Periksa kredensial Anda.';
+        }
+        return 'Server bermasalah ($code). Coba lagi nanti.';
+      default:
+        return 'Terjadi kesalahan jaringan. Coba lagi.';
+    }
+  }
+  return 'Terjadi kesalahan tak terduga: $error';
+}
 ```
 
 ### 5. UI: Loading, Error, Empty, Success
 
 File: `lib/pages/post_list_page.dart`
+```dart
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../data/providers.dart';
 
-Gunakan `ConsumerWidget` dan `ref.watch(postListProvider)`. Setiap state harus mempunyai tampilan sendiri:
+class PostListPage extends ConsumerWidget {
+  const PostListPage({super.key});
 
-| State | Tampilan |
-| --- | --- |
-| Loading | `CircularProgressIndicator` |
-| Error | Pesan ramah pengguna dan tombol `Coba lagi` |
-| Empty | Pesan bahwa belum ada data dari server |
-| Success | `RefreshIndicator` dan daftar post |
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final postsAsync = ref.watch(postListProvider);
 
-Gunakan `ref.read(postListProvider.notifier)` pada callback refresh dan `ref.invalidate(postListProvider)` pada tombol retry.
-
-**Catatan implementasi UI:**
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Posts API'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: () =>
+                ref.read(postListProvider.notifier).refresh(),
+          ),
+        ],
+      ),
+      body: postsAsync.when(
+        loading: () =>
+            const Center(child: CircularProgressIndicator()),
+        error: (err, _) => Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(friendlyErrorMessage(err),
+                    textAlign: TextAlign.center),
+                const SizedBox(height: 12),
+                FilledButton(
+                  onPressed: () => ref.invalidate(postListProvider),
+                  child: const Text('Coba lagi'),
+                ),
+              ],
+            ),
+          ),
+        ),
+        data: (posts) {
+          if (posts.isEmpty) {
+            return const Center(
+                child: Text('Belum ada data dari server.'));
+          }
+          return RefreshIndicator(
+            onRefresh: () =>
+                ref.read(postListProvider.notifier).refresh(),
+            child: ListView.builder(
+              itemCount: posts.length,
+              itemBuilder: (context, index) {
+                final post = posts[index];
+                return ListTile(
+                  leading: CircleAvatar(
+                      child: Text(post.id.toString())),
+                  title: Text(post.title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis),
+                  subtitle: Text(post.body,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis),
+                );
+              },
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+```
 
 ### 6. Entry Point dengan `ProviderScope`
 

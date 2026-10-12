@@ -10,12 +10,12 @@
 
 > Dokumentasi praktikum Pemrograman Mobile — Minggu 4
 
-| Informasi | Detail |
-| --- | --- |
-| **Nama** | Risky Adi Prasetya |
-| **NIM** | 244107020153 |
+| Informasi         | Detail             |
+| ----------------- | ------------------ |
+| **Nama**          | Risky Adi Prasetya |
+| **NIM**           | 244107020153       |
 | **Program Studi** | Teknik Informatika |
-| **Kelas** | TI-3E |
+| **Kelas**         | TI-3E              |
 
 ## Daftar Isi
 
@@ -35,25 +35,26 @@
 ## Tujuan Pembelajaran
 
 - menjelaskan konsep HTTP, REST API, dan JSON;
-- memetakan JSON ke model Dart (*serialization*) dengan aman null;
-- menerapkan *repository pattern* dasar sehingga UI tidak memanggil API secara langsung;
+- memetakan JSON ke model Dart (_serialization_) dengan aman null;
+- menerapkan _repository pattern_ dasar sehingga UI tidak memanggil API secara langsung;
 - mengonfigurasi Dio (base URL, timeout, interceptor) dan menangani error jaringan;
 - menampilkan state loading, error, empty, dan success pada UI dengan `AsyncValue` + Riverpod;
-- menerapkan pagination dasar (*infinite scroll*).
+- menerapkan pagination dasar (_infinite scroll_).
 
 ## Tech Stack
 
-| Komponen | Detail |
-| --- | --- |
-| Framework | Flutter & Dart |
-| HTTP client | Dio |
-| State management | flutter_riverpod |
-| API latihan | [JSONPlaceholder](https://jsonplaceholder.typicode.com/) |
-| IDE | VS Code |
-| Device | Smartphone atau emulator Android |
-| Version Control | GitHub |
+| Komponen         | Detail                                                   |
+| ---------------- | -------------------------------------------------------- |
+| Framework        | Flutter & Dart                                           |
+| HTTP client      | Dio                                                      |
+| State management | flutter_riverpod                                         |
+| API latihan      | [JSONPlaceholder](https://jsonplaceholder.typicode.com/) |
+| IDE              | VS Code                                                  |
+| Device           | Smartphone atau emulator Android                         |
+| Version Control  | GitHub                                                   |
 
 ---
+
 ## Konsep HTTP, REST API, dan JSON
 
 ### HTTP
@@ -62,12 +63,12 @@ HTTP adalah protokol komunikasi antara client dan server. Pada aplikasi Flutter,
 
 Method yang umum digunakan:
 
-| Method | Kegunaan |
-| --- | --- |
-| `GET` | Membaca data |
-| `POST` | Membuat data |
+| Method        | Kegunaan         |
+| ------------- | ---------------- |
+| `GET`         | Membaca data     |
+| `POST`        | Membuat data     |
 | `PUT`/`PATCH` | Memperbarui data |
-| `DELETE` | Menghapus data |
+| `DELETE`      | Menghapus data   |
 
 ### REST API
 
@@ -78,6 +79,7 @@ GET https://jsonplaceholder.typicode.com/posts
 GET https://jsonplaceholder.typicode.com/posts?_page=1&_limit=10
 GET https://jsonplaceholder.typicode.com/comments?postId={id}
 ```
+
 ---
 
 ## Praktikum 1 — Dio dan Model Data
@@ -89,8 +91,8 @@ flutter create week4_api
 cd week4_api
 flutter pub add dio flutter_riverpod
 ```
-### 1. Model Data dengan `fromJson` Aman Null
 
+### 1. Model Data dengan `fromJson` Aman Null
 
 File: `lib/data/models/post.dart`
 
@@ -125,6 +127,7 @@ class Post {
       };
 }
 ```
+
 Cast defensif seperti `as String? ?? ''` membantu mencegah crash ketika field API hilang atau bernilai `null`.
 
 ### 2. Konfigurasi Dio Terpusat
@@ -151,6 +154,7 @@ Dio createDio() {
   return dio;
 }
 ```
+
 Konfigurasi jaringan ditempatkan di satu client agar base URL, timeout, header, dan logging tidak tersebar di setiap request.
 
 ### 3. Repository sebagai Pintu Data
@@ -193,7 +197,9 @@ class PostRepository {
   }
 }
 ```
+
 ---
+
 ## Praktikum 2 — Provider dan Error Handling
 
 ### 4. `AsyncNotifier` dan Pesan Error Ramah Pengguna
@@ -311,6 +317,7 @@ String friendlyErrorMessage(Object error) {
 ### 5. UI: Loading, Error, Empty, Success
 
 File: `lib/pages/post_list_page.dart`
+
 ```dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -415,9 +422,27 @@ class MyApp extends StatelessWidget {
 ### Uji Tiga Skenario Error
 
 1. Jalankan aplikasi dengan internet normal, amati loading lalu daftar 100 post.
+
+<p align="center">
+    <video src="screenshots/normal-test.mp4" width="75%" autoplay loop muted playsinline></video>
+    <br>
+    <i>Hasil uji coba dengan koneksi internet normal</i>
+  </p>
+
 2. Matikan internet, tekan refresh, lalu amati pesan ramah dan tombol **Coba lagi**.
-3. Ubah sementara `baseUrl` menjadi URL yang salah dan amati pesan error koneksi.
-4. Kembalikan `baseUrl` setelah pengujian selesai.
+
+  <p align="center">
+    <video src="screenshots/no-sinyal-test.mp4" width="75%" autoplay loop muted playsinline></video>
+    <br>
+    <i>Hasil uji coba tanpa koneksi internet</i>
+  </p>
+
+3. Ubah sementara `baseUrl` menjadi URL yang salah dan amati pesan error koneksi. Kembalikan `baseUrl` setelah pengujian selesai.
+  <p align="center">
+    <video src="screenshots/baseUrl-test.mp4" width="90%" autoplay loop muted playsinline></video>
+    <br>
+    <i>Hasil uji coba dengan baseUrl yang salah sekaligus mengembalikan ke semula</i>
+  </p>
 
 ---
 
@@ -427,7 +452,7 @@ class MyApp extends StatelessWidget {
 
 API dengan data besar tidak selalu mengirim semua data sekaligus. Data dikirim per halaman menggunakan parameter `_page` dan `_limit`.
 
-Strategi *infinite scroll*:
+Strategi _infinite scroll_:
 
 1. Muat halaman pertama.
 2. Pantau posisi scroll.
@@ -500,7 +525,9 @@ Pastikan:
 > Isi setelah mencoba scroll sampai bawah dan memverifikasi halaman berikutnya termuat.
 
 ---
+
 ## AI Challenge
+
 ### AI Prompt Challenge
 
 Gunakan prompt berikut:
@@ -519,6 +546,7 @@ Jelaskan setiap bagian kode dalam komentar.
 ```
 
 ### AI Verification Checklist
+
 - [ ] UI tidak memanggil Dio secara langsung; UI menggunakan repository.
 - [ ] `fromJson` aman null dan tidak memakai cast langsung yang dapat crash.
 - [ ] `DioExceptionType` timeout, connection error, dan bad response dipetakan ke pesan pengguna.
@@ -531,11 +559,11 @@ Jelaskan setiap bagian kode dalam komentar.
 
 Simpan artefak AI di folder `docs/`:
 
-| Dokumen | Lokasi | Status |
-| --- | --- | --- |
-| Prompt yang digunakan | `docs/ai-prompt.md` | Isi setelah AI Challenge |
-| Output awal AI | `docs/ai-output-awal.md` | Isi setelah AI Challenge |
-| Hasil testing | `docs/ai-testing.md` | Isi setelah testing |
+| Dokumen               | Lokasi                   | Status                   |
+| --------------------- | ------------------------ | ------------------------ |
+| Prompt yang digunakan | `docs/ai-prompt.md`      | Isi setelah AI Challenge |
+| Output awal AI        | `docs/ai-output-awal.md` | Isi setelah AI Challenge |
+| Hasil testing         | `docs/ai-testing.md`     | Isi setelah testing      |
 
 ## Refactoring dan Testing
 
@@ -581,10 +609,10 @@ flutter test
 
 ### Hasil Testing
 
-| Perintah | Hasil |
-| --- | --- |
+| Perintah          | Hasil         |
+| ----------------- | ------------- |
 | `flutter analyze` | Lulus / Gagal |
-| `flutter test` | Lulus / Gagal |
+| `flutter test`    | Lulus / Gagal |
 
 ## Tugas, Refleksi
 
@@ -595,7 +623,7 @@ Bangun **aplikasi daftar data dari REST API** sebagai tugas minggu ini:
 1. Ambil data dari JSONPlaceholder `/posts` atau API publik lain tanpa API key, lalu tampilkan melalui repository dan Riverpod.
 2. Terapkan Dio terpusat dengan base URL, timeout, interceptor logging, dan model `fromJson` aman null.
 3. Tampilkan loading, error dengan tombol retry, empty, dan success.
-4. Tambahkan pagination dasar dengan *infinite scroll*, 10 item per halaman, dan guard request ganda.
+4. Tambahkan pagination dasar dengan _infinite scroll_, 10 item per halaman, dan guard request ganda.
 5. Sertakan minimal dua test yang lulus: satu unit test model/error mapping dan satu test provider dengan repository palsu.
 6. Kerjakan AI Challenge dan dokumentasikan prompt, hasil AI, perbaikan, serta alasan keputusan teknis di `docs/`.
 7. Push ke repository portfolio pada folder `04-week-4-networking-rest-api/` dengan struktur `lib/`, `test/`, `docs/`, `README.md`, dan `screenshots/`.

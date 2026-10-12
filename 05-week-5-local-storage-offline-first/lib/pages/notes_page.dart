@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/local/note.dart';
 import '../data/providers/notes_providers.dart';
+import '../data/sync.dart';
+import 'cached_posts_page.dart';
 import 'setting_page.dart';
 
 class NotesPage extends ConsumerStatefulWidget {
@@ -24,6 +26,16 @@ class _NotesPageState extends ConsumerState<NotesPage> {
       appBar: AppBar(
         title: const Text('Catatan Offline'),
         actions: [
+          IconButton(
+            tooltip: 'Cache posts',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const CachedPostsPage()),
+              );
+            },
+            icon: const Icon(Icons.cloud_outlined),
+          ),
           IconButton(
             tooltip: 'Pengaturan',
             onPressed: () {
@@ -48,6 +60,27 @@ class _NotesPageState extends ConsumerState<NotesPage> {
               padding: const EdgeInsets.only(right: 16),
               child: Center(child: Text('Belum sync: $count')),
             ),
+          ),
+          IconButton(
+            tooltip: 'Sinkronkan catatan',
+            onPressed: () async {
+              final count = await syncNotes(
+                ref.read(noteRepositoryProvider),
+              );
+              ref.invalidate(notesProvider);
+              ref.invalidate(dirtyCountProvider);
+              if (!context.mounted) return;
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    count == 0
+                        ? 'Tidak ada catatan untuk disinkronkan.'
+                        : '$count catatan berhasil disinkronkan.',
+                  ),
+                ),
+              );
+            },
+            icon: const Icon(Icons.sync),
           ),
         ],
       ),

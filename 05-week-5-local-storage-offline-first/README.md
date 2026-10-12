@@ -404,15 +404,11 @@ Sediakan toggle `forceOffline` pada provider agar demo dan testing tidak bergant
 - jalankan `syncNotes`;
 - pastikan badge kembali menjadi 0.
 
-### 4. Aturan Konflik
-
-**Aturan konflik yang dipilih:**
-*Last-write-wins* berdasarkan nilai `updated_at`.
 
 <p align="center">
-  <video src="screenshots/Practicum1.mp4" alt="SharedPreferences result" width="50%" muted autoplay loop></video>
+  <video src="screenshots/Practicum1.2.mp4" alt="Simulasi Offline" width="50%" muted autoplay loop></video>
   <br>
-  <i>Tampilan halaman pengaturan dengan toggle tema gelap/terang dan waktu terakhir dibuka.</i>
+  <i>Simulasi offline dalam aplikasi catatan offline.</i>
 </p>
 
 ---

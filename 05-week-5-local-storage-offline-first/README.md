@@ -340,8 +340,6 @@ class NoteRepository {
 }
 ```
 
-> Constructor menerima `openDb` agar test dapat menyuntikkan database palsu atau in-memory tanpa menyentuh SQLite sungguhan.
-
 ### 4. Halaman Catatan Offline
 
 File: `lib/pages/notes_page.dart`
@@ -415,10 +413,6 @@ Sediakan toggle `forceOffline` pada provider agar demo dan testing tidak bergant
 
 ## AI Challenge
 
-### Peran AI pada Codelab Ini
-
-AI boleh mengusulkan pilihan storage, tetapi **Anda yang memutuskan**. Nilai ada pada kualitas perbandingan dan justifikasi, bukan pada banyaknya kode yang dihasilkan AI.
-
 ### AI Prompt Challenge
 
 Gunakan prompt berikut:
@@ -436,35 +430,32 @@ Jelaskan trade-off setiap pilihan.
 ```
 
 ### AI Verification Checklist
-
-Sebelum rekomendasi AI diterima, verifikasi dan catat temuan di README:
-
-- [ ] AI tidak menempatkan daftar catatan di SharedPreferences.
-- [ ] Skema mendukung antrean sync (`dirty` dan/atau `updated_at`).
-- [ ] Klaim “real-time” didukung stream/watch, bukan asumsi.
-- [ ] Estimasi boilerplate diuji melalui instalasi dan migrasi skema.
-- [ ] Keputusan final ditulis beserta alasannya.
-- [ ] Keputusan final boleh berbeda dari rekomendasi AI selama argumennya jelas.
+1. **Apakah AI menempatkan daftar catatan di SharedPreferences? (menolak: rapuh untuk koleksi).**
+   - Tidak. `SSharedPreferences` hanya digunakan untuk preferensi kecil seperti dark_mode dan last_opened_at. Catatan disimpan di `SQLite` karena lebih sesuai untuk data CRUD dan jumlah besar.
+2. **Apakah skema AI mendukung antrean sync (dirty flag / updated_at) atau hanya CRUD polos?**
+   - Ya. Tabel notes memiliki `dirty` dan `updated_at`. Catatan baru diberi `dirty = 1`, kemudian diubah menjadi 0 setelah berhasil disinkronkan.
+3. **Apakah klaim "real-time" AI didukung stream (Drift/watch) atau hanya asumsi?**
+   - Belum real-time. Implementasi saat ini menggunakan reload/invalidate Riverpod setelah perubahan, bukan stream database. Stream seperti Drift `watch()` belum digunakan.
+4. **Apakah estimasi boilerplate AI masuk akal setelah Anda mencoba instalasinya (flutter pub add + migrasi skema)?**
+   - Cukup masuk akal. `sqflite` lebih sederhana dan sudah digunakan di proyek. Drift membutuhkan konfigurasi tambahan seperti generator dan migration strategy, sehingga boilerplate-nya lebih besar.
+5. **Keputusan final Anda beserta alasannya, boleh berbeda dari rekomendasi AI selama berargumen.**
+   - Kami memilih SharedPreferences untuk preferensi dan sqflite/SQLite untuk catatan. Keduanya sudah terpasang, SQLite mendukung CRUD serta sinkronisasi melalui `dirty` dan `updated_at`, dan kebutuhannya sesuai dengan scope aplikasi saat ini.
 
 ### Dokumentasi AI
 
-Simpan artefak AI di folder `docs/`:
+Artefak AI dalam folder `docs/`:
 
 | Dokumen | Lokasi | Status |
 | --- | --- | --- |
-| Prompt yang digunakan | `docs/ai-prompt.md` | Isi setelah AI Challenge |
-| Output awal AI | `docs/ai-output-awal.md` | Isi setelah AI Challenge |
-| Tabel perbandingan storage | `docs/storage-comparison.md` | Isi setelah verifikasi |
-| Keputusan final dan alasan teknis | `docs/storage-decision.md` | Isi setelah verifikasi |
-| Hasil testing | `docs/ai-testing.md` | Isi setelah testing |
+| Prompt yang digunakan | [`docs/ai-prompt.md`](docs/ai-prompt.md) |
+| Output awal AI | [`docs/ai-output-awal.md`](docs/ai-output-awal.md) |
+| Tabel perbandingan storage | [`docs/storage-comparison.md`](docs/storage-comparison.md) |
+| Keputusan final dan alasan teknis | [`docs/decision.md`](docs/decision.md) |
 
 ---
 
 ## Refactoring dan Testing
-
 ### Refactoring Challenge
-
-Lakukan refactoring berikut pada project catatan, lalu commit dengan pesan yang jelas:
 
 1. Ekstrak baris catatan menjadi widget `NoteTile` yang menampilkan badge **belum tersinkron** ketika `dirty == true`.
 2. Pindahkan logika cache posts dan `syncNotes` ke `lib/data/sync.dart` agar repository tetap fokus pada CRUD.

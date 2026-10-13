@@ -430,8 +430,6 @@ Kirim campaign dengan `title` dan `body` ke aplikasi Android saat aplikasi berad
 
 ### 1. Background Handler
 
-Handler harus berupa fungsi top-level karena berjalan di isolate terpisah. Jangan mengakses `BuildContext`, GoRouter, atau Riverpod dari handler ini.
-
 ```dart
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(
@@ -504,13 +502,27 @@ Future<void> handleTerminated(void Function(String route) go) async {
 
 ### 3. Matriks Pengujian Wajib
 
-Isi hasil aktual pada tabel berikut dan sertakan screenshot di `screenshots/`:
-
 | State | Hasil yang diharapkan | Cara uji | Hasil |
 | --- | --- | --- | --- |
-| Foreground | Local notification muncul dan klik masuk `/pengumuman/3` | Aplikasi terbuka, kirim dari console/backend | Isi hasil |
-| Background | Banner sistem muncul dan klik masuk ke rute benar | Tekan Home, kirim, klik banner | Isi hasil |
-| Terminated | Aplikasi terbuka ke rute benar melalui `getInitialMessage` | Swipe-close aplikasi, kirim, klik banner | Isi hasil |
+| Foreground | Local notification muncul dan klik masuk `/pengumuman/3` | Aplikasi terbuka, kirim dari console/backend | Berhasil |
+| Background | Banner sistem muncul dan klik masuk ke rute benar | Tekan Home, kirim, klik banner | Berhasil |
+| Terminated | Aplikasi terbuka ke rute benar melalui `getInitialMessage` | Swipe-close aplikasi, kirim, klik banner | Berhasil |
+
+<p align="center">
+  <video src="screenshots/Foreground.mp4" controls width="75%" muted autoplay loop></video>
+  <br>
+  <i>Hasil Foreground</i>
+</p>
+<p align="center">
+  <video src="screenshots/Background.mp4" controls width="75%" muted autoplay loop></video>
+  <br>
+  <i>Hasil Background</i>
+</p>
+<p align="center">
+  <video src="screenshots/Terminated.mp4" controls width="75%" muted autoplay loop></video>
+  <br>
+  <i>Hasil Terminated</i>
+</p>
 
 ### 4. Topic Messaging
 

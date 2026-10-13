@@ -13,9 +13,7 @@ import 'providers/auth_provider.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
-  FirebaseMessaging.onBackgroundMessage(
-    firebaseMessagingBackgroundHandler,
-  );
+  FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
   await initLocalNotifications();
 
   final container = ProviderContainer();
@@ -28,9 +26,14 @@ Future<void> main() async {
 }
 
 class MyApp extends StatefulWidget {
-  const MyApp({super.key, required this.container});
+  const MyApp({
+    super.key,
+    required this.container,
+    this.enablePush = true,
+  });
 
   final ProviderContainer container;
+  final bool enablePush;
 
   @override
   State<MyApp> createState() => _MyAppState();
@@ -59,22 +62,19 @@ class _MyAppState extends State<MyApp> {
         return null;
       },
       routes: [
-        GoRoute(
-          path: '/login',
-          builder: (context, state) => const LoginPage(),
-        ),
-        GoRoute(
-          path: '/',
-          builder: (context, state) => const HomePage(),
-        ),
+        GoRoute(path: '/login', builder: (context, state) => const LoginPage()),
+        GoRoute(path: '/', builder: (context, state) => const HomePage()),
         GoRoute(
           path: '/pengumuman/:id',
-          builder: (_, state) => AnnouncementPage(
-            id: state.pathParameters['id'] ?? '',
-          ),
+          builder: (_, state) =>
+              AnnouncementPage(id: state.pathParameters['id'] ?? ''),
         ),
       ],
     );
+    if (widget.enablePush) {
+      listenPushMessages(_router.go);
+      handleTerminated(_router.go);
+    }
   }
 
   @override

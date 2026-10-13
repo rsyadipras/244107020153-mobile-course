@@ -12,7 +12,7 @@ void main() {
     await tester.pumpWidget(
       UncontrolledProviderScope(
         container: container,
-        child: MyApp(container: container),
+        child: MyApp(container: container, enablePush: false),
       ),
     );
     await tester.pump(const Duration(seconds: 1));

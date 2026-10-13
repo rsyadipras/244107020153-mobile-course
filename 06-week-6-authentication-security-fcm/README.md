@@ -486,17 +486,9 @@ Isi hasil aktual pada tabel berikut dan sertakan screenshot di `screenshots/`:
 await FirebaseMessaging.instance.subscribeToTopic('pengumuman-kampus');
 await FirebaseMessaging.instance.unsubscribeFromTopic('pengumuman-kampus');
 ```
-
-Gunakan topic untuk broadcast seperti pengumuman semua mahasiswa, satu kelas, atau satu UKM. Untuk nilai dan tagihan, gunakan token perangkat karena pesannya personal.
-
 ---
 
 ## AI Challenge
-
-### Peran AI pada Codelab Ini
-
-AI boleh membuat implementasi awal FCM dan boilerplate auth, tetapi mahasiswa wajib memvalidasi token lifecycle, jenis payload, dan perilaku notifikasi pada tiga app state secara manual. Nilai utama ada pada pembuktian melalui screenshot dan log yang aman, bukan sekadar kode hasil AI.
-
 ### AI Prompt Challenge
 
 ```text
@@ -603,24 +595,13 @@ flutter test
 
 ### Hasil Testing
 
-| Perintah | Hasil | Catatan |
-| --- | --- | --- |
-| `flutter analyze` | ☐ Lulus / ☐ Gagal | Isi hasil aktual |
-| `flutter test` | ☐ Lulus / ☐ Gagal | Isi hasil aktual |
-| Uji foreground | ☐ Lulus / ☐ Gagal | Isi hasil aktual |
-| Uji background | ☐ Lulus / ☐ Gagal | Isi hasil aktual |
-| Uji terminated | ☐ Lulus / ☐ Gagal | Isi hasil aktual |
-
-### Error Umum
-
-| Gejala | Penyebab umum | Solusi |
-| --- | --- | --- |
-| Token null di emulator | Emulator tidak memiliki Google Play Services | Gunakan emulator dengan ikon Play Store atau perangkat fisik |
-| Banner tidak muncul saat foreground | Mengandalkan banner otomatis sistem | Tampilkan local notification pada `onMessage` |
-| Klik terminated tidak navigasi | `getInitialMessage` tidak dipanggil setelah router siap | Panggil handler startup dan teruskan `data.route` |
-| 401 berulang | Request retry tidak diberi penanda | Batasi retry satu kali; clear sesi jika refresh gagal |
-| `MissingPluginException` | Hot reload setelah menambah plugin native | Hentikan aplikasi lalu jalankan ulang penuh |
-| Notifikasi iOS tidak muncul | APNs atau capability Push belum dikonfigurasi | Tambahkan APNs key dan aktifkan Push Notifications di Xcode |
+| Perintah | Hasil |
+| --- | --- |
+| `flutter analyze` | Lulus / Gagal |
+| `flutter test` | Lulus / Gagal |
+| Uji foreground | Lulus / Gagal |
+| Uji background | Lulus / Gagal |
+| Uji terminated | Lulus / Gagal |
 
 ## Tugas dan Refleksi
 
@@ -636,8 +617,6 @@ Bangun **Campus Notification App** sebagai tugas minggu ini:
 6. Sertakan minimal dua unit test yang lulus.
 7. Dokumentasikan prompt AI, output awal, perbaikan manual, dan hasil pengujian di `docs/`.
 8. Push ke repository portfolio pada folder `06-week-6-authentication-security-fcm/` dengan struktur `lib/`, `test/`, `docs/`, `README.md`, dan `screenshots/`.
-
-README tugas harus menjelaskan tujuan, fitur utama, stack teknologi, cara menjalankan, dan hasil yang dicapai.
 
 ### Refleksi
 

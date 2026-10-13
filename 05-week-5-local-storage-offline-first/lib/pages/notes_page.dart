@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../data/local/note.dart';
 import '../data/providers/notes_providers.dart';
@@ -113,6 +114,7 @@ class _NotesPageState extends ConsumerState<NotesPage> {
                 final note = items[index];
                 return NoteTile(
                   note: note,
+                  onOpen: () => context.push('/note/${note.id}'),
                   onDelete: () => ref
                       .read(notesProvider.notifier)
                       .deleteNote(note.id!),
@@ -232,18 +234,29 @@ class _AddNoteDialogState extends State<AddNoteDialog> {
 }
 
 class NoteTile extends StatelessWidget {
-  const NoteTile({required this.note, required this.onDelete, super.key});
+  const NoteTile({
+    required this.note,
+    required this.onOpen,
+    required this.onDelete,
+    super.key,
+  });
 
   final Note note;
+  final VoidCallback onOpen;
   final VoidCallback onDelete;
 
   @override
   Widget build(BuildContext context) {
+    // Widget ini memusatkan tampilan baris dan badge status dirty.
     return ListTile(
+      onTap: onOpen,
       title: Text(note.title),
       subtitle: Text(note.body.isEmpty ? 'Tanpa isi' : note.body),
       leading: note.dirty
-          ? const Icon(Icons.cloud_upload_outlined)
+          ? const Chip(
+              avatar: Icon(Icons.cloud_upload_outlined, size: 16),
+              label: Text('Belum sync'),
+            )
           : const Icon(Icons.check_circle_outline),
       trailing: IconButton(
         onPressed: onDelete,

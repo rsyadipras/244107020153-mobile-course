@@ -8,11 +8,13 @@ final prefsRepositoryProvider = Provider<PrefsRepository>(
   (ref) => PrefsRepository(),
 );
 
-final darkModeProvider =
-    AsyncNotifierProvider<DarkModeNotifier, bool>(DarkModeNotifier.new);
+final darkModeProvider = AsyncNotifierProvider<DarkModeNotifier, bool>(
+  DarkModeNotifier.new,
+);
 
 final lastOpenedProvider = FutureProvider<String?>((ref) {
-  return ref.watch(prefsRepositoryProvider).getLastOpened();
+  final repository = ref.watch(prefsRepositoryProvider);
+  return repository.markOpenedNow().then((_) => repository.getLastOpened());
 });
 
 class DarkModeNotifier extends AsyncNotifier<bool> {
@@ -43,11 +45,13 @@ final dirtyCountProvider = FutureProvider<int>((ref) {
   return ref.watch(noteRepositoryProvider).countDirty();
 });
 
+final noteByIdProvider = FutureProvider.family<Note?, int>((ref, id) {
+  return ref.watch(noteRepositoryProvider).fetchNoteById(id);
+});
+
 class NotesNotifier extends AsyncNotifier<List<Note>> {
   @override
-  Future<List<Note>> build() async {
-    await ref.read(prefsRepositoryProvider).markOpenedNow();
-    ref.invalidate(lastOpenedProvider);
+  Future<List<Note>> build() {
     return ref.read(noteRepositoryProvider).fetchNotes();
   }
 

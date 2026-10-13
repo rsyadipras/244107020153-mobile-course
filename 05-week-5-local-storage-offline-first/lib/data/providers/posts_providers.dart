@@ -1,9 +1,8 @@
-import 'dart:async';
-
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../local/post.dart';
 import '../repositories/post_cache_repository.dart';
+import '../sync.dart';
 
 final forceOfflineProvider = NotifierProvider<ForceOfflineNotifier, bool>(
   ForceOfflineNotifier.new,
@@ -29,24 +28,13 @@ class CachedPostsNotifier extends AsyncNotifier<List<Post>> {
   @override
   Future<List<Post>> build() async {
     final repository = ref.read(postCacheRepositoryProvider);
-    final cached = await repository.readCachedPosts();
-    if (!ref.read(forceOfflineProvider)) {
-      unawaited(_refresh(repository, cached.isNotEmpty));
-    }
-    return cached;
-  }
-
-  Future<void> _refresh(
-    PostCacheRepository repository,
-    bool hasCache,
-  ) async {
-    try {
-      final fresh = await repository.fetchPostsFromNetwork();
-      await repository.saveCachedPosts(fresh);
-      if (ref.mounted) state = AsyncData(fresh);
-    } catch (error, stackTrace) {
-      if (!hasCache && ref.mounted) state = AsyncError(error, stackTrace);
-    }
+    return loadPostsCacheFirst(
+      repository: repository,
+      forceOffline: ref.read(forceOfflineProvider),
+      onRefresh: (fresh) {
+        if (ref.mounted) state = AsyncData(fresh);
+      },
+    );
   }
 
   Future<void> refresh() async {

@@ -462,16 +462,14 @@ Artefak AI dalam folder `docs/`:
 3. Tambahkan halaman detail catatan dengan GoRouter pada route `/note/:id`.
 4. Halaman detail membaca data dari repository lokal, bukan hanya dari state halaman list.
 
+<p align="center">
+  <img src="screenshots/refactor.jpeg" alt="Refactoring result" width="50%"></img>
+  <br>
+  <i>Hasil refactoring halaman catatan dengan detail dan badge dirty.</i>
+
 ### Testing: Unit Test Model dan Repository Palsu
 
-Buat `test/note_test.dart` dengan minimal empat skenario:
-
-1. `fromMap` aman terhadap field yang hilang.
-2. Flag `dirty` bertahan setelah serialisasi dan deserialisasi.
-3. Provider berhasil menggunakan repository palsu.
-4. Provider menghasilkan error menggunakan repository palsu.
-
-Gunakan repository palsu agar test tidak menggunakan database SQLite sungguhan:
+Buat `test/note_test.dart`:
 
 ```dart
 class FakeNoteRepository extends NoteRepository {
@@ -532,53 +530,32 @@ flutter test
 
 ### Hasil Testing
 
-| Perintah | Hasil | Catatan |
-| --- | --- | --- |
-| `flutter analyze` | ☐ Lulus / ☐ Gagal | Isi hasil aktual |
-| `flutter test` | ☐ Lulus / ☐ Gagal | Isi hasil aktual |
+```dart
+flutter analyze; flutter test .\test\note_test.dart
+Analyzing 05-week-5-local-storage-offline-first...
+No issues found! (ran in 6.4s)
+00:03 +4: All tests passed!
+```
 
-## Tugas dan Refleksi
-
-### Mini Project / Industry Challenge
-
-Bangun **aplikasi Offline Notes** sebagai tugas minggu ini:
-
-1. Tambahkan toggle tema gelap/terang dan waktu terakhir dibuka menggunakan SharedPreferences.
-2. Terapkan CRUD catatan persisten menggunakan SQLite melalui repository lokal dan Riverpod.
-3. Urutkan daftar berdasarkan `updated_at` terbaru.
-4. Terapkan offline-first untuk data bacaan dengan cache-first.
-5. Terapkan `dirty flag`, `syncNotes`, dan aturan konflik yang terdokumentasi.
-6. Buktikan mode pesawat melalui screenshot sebelum dan sesudah sync.
-7. Sertakan minimal dua test yang lulus: satu unit test model dan satu test provider dengan repository palsu.
-8. Kerjakan AI Challenge dan dokumentasikan prompt, tabel perbandingan storage, keputusan final, serta alasan teknis di `docs/`.
-9. Push ke repository portfolio pada folder `05-week-5-local-storage-offline-first/` dengan struktur `lib/`, `test/`, `docs/`, `README.md`, dan `screenshots/`.
-
-README tugas menjelaskan:
-
-- tujuan;
-- fitur utama;
-- stack teknologi;
-- cara menjalankan;
-- hasil yang dicapai.
-
-### Refleksi
-
-Tuliskan jawaban Anda sendiri:
+## Refleksi
 
 1. Mengapa daftar catatan tidak boleh disimpan di SharedPreferences? Apa yang rusak jika aturan ini dilanggar?
 
    **Jawaban:**
+   Karena SharedPreferences hanya cocok untuk data kecil seperti pengaturan tema. Jika digunakan untuk daftar catatan, seluruh data harus ditulis ulang setiap ada perubahan sehingga CRUD, pencarian, dan pengelolaan banyak catatan menjadi tidak efisien dan rentan rusak.
 
 2. Kapan cache-first cukup, dan kapan Anda membutuhkan strategi lain, misalnya network-first untuk data harga real-time?
 
    **Jawaban:**
+   Cache-first cukup untuk catatan yang harus tetap bisa dibaca saat offline. Network-first lebih cocok untuk data yang harus selalu terbaru, seperti harga atau informasi real-time.
 
 3. Bagaimana dirty flag berubah menjadi antrean sync tanpa memblokir UI? Kapan antrean terpisah seperti tabel outbox menjadi perlu?
 
    **Jawaban:**
+   Setiap perubahan lokal diberi dirty = 1, lalu proses sinkronisasi berjalan di background dan mengubahnya menjadi 0 setelah berhasil. Tabel outbox diperlukan jika perlu menyimpan banyak operasi secara terpisah, mengatur urutan retry, atau menangani konflik sinkronisasi.
 
 4. Bagian mana dari rekomendasi AI yang Anda tolak, dan mengapa?
 
    **Jawaban:**
-
+   Kami menolak rekomendasi menggunakan Drift untuk catatan pada tahap ini. Saya memilih sqflite karena sudah tersedia, lebih sederhana, dan sudah cukup untuk kebutuhan CRUD serta sinkronisasi aplikasi saat ini.
 ---

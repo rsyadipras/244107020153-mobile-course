@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import 'data/providers/notes_providers.dart';
+import 'pages/note_detail_page.dart';
 import 'pages/notes_page.dart';
 
 void main() {
@@ -14,8 +16,29 @@ class OfflineNotesApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final darkMode = ref.watch(darkModeProvider);
+    // Memuat provider ini saat aplikasi dibuka untuk mencatat waktu terakhir.
+    ref.watch(lastOpenedProvider);
 
-    return MaterialApp(
+    // GoRouter membuat URL detail bisa dibuka langsung dengan /note/:id.
+    final router = GoRouter(
+      routes: [
+        GoRoute(path: '/', builder: (context, state) => const NotesPage()),
+        GoRoute(
+          path: '/note/:id',
+          builder: (context, state) {
+            final id = int.tryParse(state.pathParameters['id'] ?? '');
+            if (id == null) {
+              return const Scaffold(
+                body: Center(child: Text('ID catatan tidak valid')),
+              );
+            }
+            return NoteDetailPage(id: id);
+          },
+        ),
+      ],
+    );
+
+    return MaterialApp.router(
       title: 'Offline Notes',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.indigo),
@@ -29,7 +52,7 @@ class OfflineNotesApp extends ConsumerWidget {
         useMaterial3: true,
       ),
       themeMode: darkMode.value == true ? ThemeMode.dark : ThemeMode.light,
-      home: const NotesPage(),
+      routerConfig: router,
     );
   }
 }

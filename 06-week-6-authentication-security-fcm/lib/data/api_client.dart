@@ -33,7 +33,6 @@ Dio buildApiClient(TokenStore store, AuthRepository auth) {
         try {
           final renewed = await auth.refresh(refresh);
           await store.save(access: renewed, refresh: refresh);
-
           final request = error.requestOptions;
           request.extra['retried'] = true;
           request.headers['Authorization'] = 'Bearer $renewed';

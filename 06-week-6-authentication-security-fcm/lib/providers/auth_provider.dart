@@ -1,15 +1,15 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/auth_repository.dart';
 import '../data/token_store.dart';
+import '../messaging/push_service.dart';
 
-final tokenStoreProvider = Provider<TokenStore>((ref) {
-  return TokenStore();
-});
+final tokenStoreProvider = Provider<TokenStore>((ref) => TokenStore());
 
-final authRepositoryProvider = Provider<AuthRepository>((ref) {
-  return AuthRepository();
-});
+final authRepositoryProvider = Provider<AuthRepository>(
+  (ref) => AuthRepository(),
+);
 
 final authStateProvider = AsyncNotifierProvider<AuthNotifier, bool>(
   AuthNotifier.new,
@@ -25,14 +25,21 @@ class AuthNotifier extends AsyncNotifier<bool> {
   Future<void> login(String email, String password) async {
     state = const AsyncLoading();
     state = await AsyncValue.guard(() async {
-      final session = await ref.read(authRepositoryProvider).login(
-            email: email,
-            password: password,
-          );
-      await ref.read(tokenStoreProvider).save(
-            access: session.access,
-            refresh: session.refresh,
-          );
+      final session = await ref
+          .read(authRepositoryProvider)
+          .login(email: email, password: password);
+      await ref
+          .read(tokenStoreProvider)
+          .save(access: session.access, refresh: session.refresh);
+      await requestNotificationPermission();
+      await initFcmToken(
+        onToken: (token) async {
+          final preview = token.length > 12
+              ? '${token.substring(0, 12)}...'
+              : 'token tersedia';
+          debugPrint('FCM token preview: $preview');
+        },
+      );
       return true;
     });
   }

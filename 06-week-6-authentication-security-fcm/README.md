@@ -311,6 +311,11 @@ class AuthNotifier extends AsyncNotifier<bool> {
   }
 }
 ```
+<p align="center">
+  <video src="screenshots/login-1.mp4" controls width="50%" muted autoplay loop></video>
+  <br>
+  <i>Video: login mock dan token refresh otomatis</i>
+</p>
 
 ---
 
@@ -327,8 +332,6 @@ class AuthNotifier extends AsyncNotifier<bool> {
 ### 2. Permission dan Local Notification
 
 File: `lib/messaging/push_service.dart`
-
-Android 13+ dan iOS membutuhkan permission runtime. Pada foreground, banner sistem tidak otomatis muncul sehingga notifikasi perlu ditampilkan menggunakan local notification.
 
 ```dart
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -375,22 +378,51 @@ Future<void> initFcmToken({
 }
 ```
 
-Token baru wajib dikirim lagi ke backend, bukan hanya dicetak ke log:
-
 ```dart
-await initFcmToken(
-  onToken: (token) => dio.post(
-    '/devices',
-    data: {'fcm_token': token, 'platform': 'android'},
-  ),
-);
+Future<void> login(String email, String password) async {
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(() async {
+      final session = await ref
+          .read(authRepositoryProvider)
+          .login(email: email, password: password);
+      await ref
+          .read(tokenStoreProvider)
+          .save(access: session.access, refresh: session.refresh);
+      await requestNotificationPermission();
+      await initFcmToken(
+        onToken: (token) async {
+          final preview = token.length > 12
+              ? '${token.substring(0, 12)}...'
+              : 'token tersedia';
+          debugPrint('FCM token preview: $preview');
+        },
+      );
+      return true;
+    });
+  }
+
 ```
 
-Untuk bukti laporan, tampilkan hanya token terpotong, misalnya 12 karakter pertama dan `...`. Hapus data aplikasi atau reinstall untuk menguji perubahan lifecycle token.
+<p align="center">
+  <img src="screenshots/fcm-token-1.png" controls width="50%" alt="FCM Token ke-1"></img>
+  <br>
+  <i>FCM Token pertama</i>
+</p>
+<p align="center">
+  <img src="screenshots/fcm-token-2.png" controls width="50%" alt="FCM Token ke-2"></img>
+  <br>
+  <i>FCM Token kedua setelah reinstall</i>
+</p>
 
 ### 4. Pengujian dari Firebase Console
 
 Kirim campaign dengan `title` dan `body` ke aplikasi Android saat aplikasi berada di background. Banner sistem harus muncul dan klik banner harus membuka aplikasi. Simpan bukti sebagai `screenshots/fcm-console-test.png`.
+
+<p align="center">
+  <video src="screenshots/fcm-console-test.mp4" controls width="75%" muted autoplay loop></video>
+  <br>
+  <i>Pengujian FCM dari Firebase Console</i>
+</p>
 
 ---
 

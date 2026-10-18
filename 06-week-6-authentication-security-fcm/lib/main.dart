@@ -9,6 +9,7 @@ import 'pages/home_page.dart';
 import 'pages/login_page.dart';
 import 'messaging/push_service.dart';
 import 'providers/auth_provider.dart';
+import 'routes.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -52,16 +53,22 @@ class _MyAppState extends State<MyApp> {
       redirect: (context, state) {
         final loggedIn =
             widget.container.read(authStateProvider).value ?? false;
-        final goingLogin = state.matchedLocation == '/login';
-        if (!loggedIn && !goingLogin) return '/login';
-        if (loggedIn && goingLogin) return '/';
+        final goingLogin = state.matchedLocation == AppRoutes.login;
+        if (!loggedIn && !goingLogin) return AppRoutes.login;
+        if (loggedIn && goingLogin) return AppRoutes.home;
         return null;
       },
       routes: [
-        GoRoute(path: '/login', builder: (context, state) => const LoginPage()),
-        GoRoute(path: '/', builder: (context, state) => const HomePage()),
         GoRoute(
-          path: '/pengumuman/:id',
+          path: AppRoutes.login,
+          builder: (context, state) => const LoginPage(),
+        ),
+        GoRoute(
+          path: AppRoutes.home,
+          builder: (context, state) => const HomePage(),
+        ),
+        GoRoute(
+          path: AppRoutes.announcementPattern,
           builder: (_, state) =>
               AnnouncementPage(id: state.pathParameters['id'] ?? ''),
         ),

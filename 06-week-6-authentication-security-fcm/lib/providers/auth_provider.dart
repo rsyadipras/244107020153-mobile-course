@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../data/api_errors.dart';
 import '../data/auth_repository.dart';
 import '../data/token_store.dart';
 import '../messaging/push_service.dart';
@@ -24,7 +25,7 @@ class AuthNotifier extends AsyncNotifier<bool> {
 
   Future<void> login(String email, String password) async {
     state = const AsyncLoading();
-    state = await AsyncValue.guard(() async {
+    try {
       final session = await ref
           .read(authRepositoryProvider)
           .login(email: email, password: password);
@@ -40,8 +41,11 @@ class AuthNotifier extends AsyncNotifier<bool> {
           debugPrint('FCM token preview: $preview');
         },
       );
-      return true;
-    });
+      state = const AsyncData(true);
+    } catch (error, stackTrace) {
+      // REFACTORING: UI menerima pesan ramah, bukan exception mentah.
+      state = AsyncError(apiErrorMessage(error), stackTrace);
+    }
   }
 
   Future<void> logout() async {

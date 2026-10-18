@@ -1,4 +1,4 @@
-# Week 06 — Authentication, Security & Firebase Cloud Messaging
+# Week 06 - Authentication, Security & Firebase Cloud Messaging
 
 <p align="left">
   <img src="https://img.shields.io/badge/Flutter-02569B?style=for-the-badge&logo=flutter&logoColor=white" alt="Flutter">
@@ -6,7 +6,7 @@
   <img src="https://img.shields.io/badge/Riverpod-2E7D32?style=for-the-badge" alt="Riverpod">
   <img src="https://img.shields.io/badge/Firebase%20Cloud%20Messaging-FFCA28?style=for-the-badge&logo=firebase&logoColor=black" alt="Firebase Cloud Messaging">
   <img src="https://img.shields.io/badge/Security-1565C0?style=for-the-badge" alt="Security">
-  <img src="https://img.shields.io/badge/Status-In%20Progress-orange?style=for-the-badge" alt="Status">
+  <img src="https://img.shields.io/badge/Status-Done-green?style=for-the-badge" alt="Status">
 </p>
 
 > Dokumentasi praktikum Pemrograman Mobile — Minggu 6
@@ -594,9 +594,9 @@ Artefak AI di folder `docs/`:
 
 | Dokumen | Lokasi | Status |
 | --- | --- | --- |
-| Prompt yang digunakan | `docs/ai-prompt.md` |
-| Output awal AI | `docs/ai-output-awal.md` |
-| Hasil uji tiga app state | `docs/fcm-state-testing.md` |
+| Prompt yang digunakan | [`docs/ai-prompt.md`](docs/ai-prompt.md) |
+| Output awal AI | [`docs/ai-output-awal.md`](docs/ai-output-awal.md) |
+| Hasil uji tiga app state | [`docs/fcm-state-testing.md`](docs/fcm-state-testing.md) |
 
 ---
 
@@ -609,96 +609,38 @@ Artefak AI di folder `docs/`:
 3. Pindahkan pemetaan `DioException` untuk status 401, timeout, dan offline ke `lib/data/api_errors.dart`.
 4. Pastikan UI menerima pesan ramah pengguna, bukan exception mentah atau token.
 
-### Testing: Unit Test Tanpa Firebase Sungguhan
-
-Buat `test/auth_push_test.dart` dan uji setidaknya:
-
-```dart
-import 'package:flutter_test/flutter_test.dart';
-
-void main() {
-  test('routeFromMessage menangani route kosong dan tanpa slash', () {
-    expect(routeFromMessage({}), '/');
-    expect(
-      routeFromMessage({'route': 'pengumuman/3'}),
-      '/pengumuman/3',
-    );
-    expect(
-      routeFromMessage({'route': '/pengumuman/3'}),
-      '/pengumuman/3',
-    );
-  });
-
-  test('data payload membawa id pengumuman', () {
-    const data = {'route': '/pengumuman/3', 'id': '3'};
-    expect(data['id'], '3');
-    expect(routeFromMessage(data), '/pengumuman/3');
-  });
-
-  test('status login mengikuti access token', () {
-    String? access = 'mock-access';
-    expect(access != null, isTrue);
-    access = null;
-    expect(access != null, isFalse);
-  });
-
-  test('refresh gagal mengharuskan login ulang', () {
-    const refresh = '';
-    expect(refresh.isEmpty, isTrue);
-  });
-}
-```
-
-Jalankan verifikasi:
-
-```bash
-flutter analyze
-flutter test
-```
+<p align="center">
+  <img src="screenshots/testing-refactor.png" controls width="50%" alt="Hasil testing refactoring"></img>
+  <br>
+  <i>Hasil `flutter analyze; flutter test test/auth_push_test.dart`</i>
 
 ### Hasil Testing
 
 | Perintah | Hasil |
 | --- | --- |
-| `flutter analyze` | Lulus / Gagal |
-| `flutter test` | Lulus / Gagal |
-| Uji foreground | Lulus / Gagal |
-| Uji background | Lulus / Gagal |
-| Uji terminated | Lulus / Gagal |
+| `flutter analyze` | Lulus |
+| `flutter test` | Lulus |
+| Uji foreground | Lulus |
+| Uji background | Lulus |
+| Uji terminated | Lulus |
 
-## Tugas dan Refleksi
-
-### Mini Project / Industry Challenge
-
-Bangun **Campus Notification App** sebagai tugas minggu ini:
-
-1. Implementasikan login mock atau Firebase Auth dengan guard route.
-2. Simpan token di secure storage dan refresh otomatis sekali saat 401.
-3. Integrasikan permission, `getToken`, `onTokenRefresh`, dan dokumentasikan endpoint `POST /devices`.
-4. Kirim payload gabungan `notification + data` dan buktikan deep link pada tiga app state.
-5. Sertakan screenshot token terpotong, banner, dan halaman tujuan di `screenshots/`.
-6. Sertakan minimal dua unit test yang lulus.
-7. Dokumentasikan prompt AI, output awal, perbaikan manual, dan hasil pengujian di `docs/`.
-8. Push ke repository portfolio pada folder `06-week-6-authentication-security-fcm/` dengan struktur `lib/`, `test/`, `docs/`, `README.md`, dan `screenshots/`.
+## Refleksi
 
 ### Refleksi
-
-Tuliskan jawaban Anda sendiri:
-
 1. Mengapa refresh token tidak boleh disimpan di `SharedPreferences`? Apa risikonya bila bocor?
 
-   **Jawaban:**
+   **Jawaban:** Karena`SharedPreferences` bukan tempat untuk menyimpan data sensitif. Jika bocor, data di dalamnya lebih mudah diakses jika perangkat terkena malware, di-root, atau data aplikasi disalin, bahkan orang lain bisa meminta access token baru dan menggunakan akun korban tanpa login ulang. Karena itu refresh token disimpan di `flutter_secure_storage`, yang menggunakan Keychain di iOS dan Keystore di Android.
 
 2. Apa yang rusak bila `onTokenRefresh` diabaikan selama satu semester?
 
-   **Jawaban:**
+   **Jawaban:** Backend akan menyimpan token FCM lama. Setelah reinstall aplikasi, clear data, atau token diganti oleh Firebase, pengiriman notifikasi ke perangkat tersebut dapat gagal atau tidak sampai. Akibatnya mahasiswa bisa tidak menerima pengumuman penting. Listener `onTokenRefresh` harus mengirim token terbaru ke endpoint backend `/devices`.
 
 3. Kapan memakai topic dan kapan memakai token perangkat? Berikan contoh pesan kampus untuk masing-masing.
 
-   **Jawaban:**
+   **Jawaban:** Topic dipakai ketika ingin melakukan pesan broadcast kepada banyak pengguna, misalnya pengumuman “Jadwal kuliah umum untuk semua mahasiswa semester 6” melalui topic `pengumuman-kampus`. Token perangkat dipakai ketika melakukan pesan personal atau terbatas, misalnya “Pembayaran UKT Anda belum terverifikasi” atau “Nilai Anda sudah tersedia”.
 
 4. Bagian mana dari draf AI yang ditolak atau diperbaiki, dan mengapa?
 
-   **Jawaban:**
+   **Jawaban:** Draf AI diperbaiki pada beberapa bagian: background handler dipastikan berupa fungsi top-level dengan `@pragma('vm:entry-point')` dan tidak memakai `BuildContext`, `onTokenRefresh` tidak hanya mencetak token, tetapi mengirim token baru ke backend jika tersedia, notifikasi foreground ditampilkan manual memakai `flutter_local_notifications`, dan parsing `data.route` dipindahkan ke fungsi murni `routeFromMessage` di `lib/routes.dart`. Token penuh juga tidak dicetak ke log karena dapat membocorkan identitas perangkat. Perbaikan ini dilakukan agar kode aman, dapat diuji, dan sesuai dengan perilaku FCM pada foreground, background, dan terminated.
 
 ---

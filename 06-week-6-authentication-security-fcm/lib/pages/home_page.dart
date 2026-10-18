@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../providers/auth_provider.dart';
+import '../routes.dart';
 
 class HomePage extends ConsumerWidget {
   const HomePage({super.key});
@@ -17,7 +18,7 @@ class HomePage extends ConsumerWidget {
             tooltip: 'Logout',
             onPressed: () async {
               await ref.read(authStateProvider.notifier).logout();
-              if (context.mounted) context.go('/login');
+              if (context.mounted) context.go(AppRoutes.login);
             },
             icon: const Icon(Icons.logout),
           ),
@@ -37,7 +38,8 @@ class HomePage extends ConsumerWidget {
               title: const Text('Jadwal kuliah berubah'),
               subtitle: const Text('Kelas Mobile pindah ke Ruang A2'),
               trailing: const Icon(Icons.chevron_right),
-              onTap: () => context.go('/pengumuman/3'),
+              // REFACTORING: Route detail memakai konstanta terpusat.
+              onTap: () => context.go(AppRoutes.announcement('3')),
             ),
           ),
           const SizedBox(height: 24),

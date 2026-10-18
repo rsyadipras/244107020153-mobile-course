@@ -10,6 +10,7 @@ Dio buildApiClient(TokenStore store, AuthRepository auth) {
       onRequest: (options, handler) async {
         final access = await store.readAccess();
         if (access != null) {
+          // REFACTORING: Kirim access token aktual pada header Bearer.
           options.headers['Authorization'] = 'Bearer $access';
         }
         handler.next(options);
@@ -32,6 +33,7 @@ Dio buildApiClient(TokenStore store, AuthRepository auth) {
           await store.save(access: renewed, refresh: refresh);
           final request = error.requestOptions;
           request.extra['retried'] = true;
+          // REFACTORING: Retry memakai access token hasil refresh.
           request.headers['Authorization'] = 'Bearer $renewed';
           handler.resolve(await dio.fetch(request));
         } catch (_) {

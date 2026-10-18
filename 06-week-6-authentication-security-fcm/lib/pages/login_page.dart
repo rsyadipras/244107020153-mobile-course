@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../providers/auth_provider.dart';
+import '../routes.dart';
 
 class LoginPage extends ConsumerStatefulWidget {
   const LoginPage({super.key});
@@ -39,7 +40,8 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       );
       return;
     }
-    context.go('/');
+    // REFACTORING: Route home memakai konstanta terpusat.
+    context.go(AppRoutes.home);
   }
 
   @override

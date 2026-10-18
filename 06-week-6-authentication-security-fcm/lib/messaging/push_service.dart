@@ -4,13 +4,15 @@ import 'package:dio/dio.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
+import '../routes.dart';
+
 class PushService {
   PushService({
     FirebaseMessaging? messaging,
     FlutterLocalNotificationsPlugin? notifications,
     this.apiClient,
-  })  : _messaging = messaging ?? FirebaseMessaging.instance,
-        _notifications = notifications ?? FlutterLocalNotificationsPlugin();
+  }) : _messaging = messaging ?? FirebaseMessaging.instance,
+       _notifications = notifications ?? FlutterLocalNotificationsPlugin();
 
   final FirebaseMessaging _messaging;
   final FlutterLocalNotificationsPlugin _notifications;
@@ -75,10 +77,7 @@ class PushService {
     if (client == null) return;
     await client.post(
       '/devices',
-      data: <String, String>{
-        'fcm_token': token,
-        'platform': 'android',
-      },
+      data: <String, String>{'fcm_token': token, 'platform': 'android'},
     );
   }
 
@@ -107,9 +106,7 @@ class PushService {
       id: message.hashCode,
       title: message.notification?.title ?? 'Pengumuman',
       body: message.notification?.body ?? '',
-      notificationDetails: const NotificationDetails(
-        android: androidDetails,
-      ),
+      notificationDetails: const NotificationDetails(android: androidDetails),
       payload: route,
     );
   }
@@ -147,23 +144,17 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   // atau state UI. Simpan/catat data ringan saja.
 }
 
-String routeFromMessage(Map<String, dynamic> data) {
-  final route = data['route'] as String? ?? '/';
-  return route.startsWith('/') ? route : '/$route';
-}
-
 Future<void> initLocalNotifications() =>
     pushService.initializeLocalNotifications();
 
-Future<bool> requestNotificationPermission() =>
-    pushService.requestPermission();
+Future<bool> requestNotificationPermission() => pushService.requestPermission();
 
 Future<void> initFcmToken({
   required Future<void> Function(String token) onToken,
-}) =>
-    pushService.initializeTokenLifecycle(onToken: onToken);
+}) => pushService.initializeTokenLifecycle(onToken: onToken);
 
-void listenPushMessages(void Function(String route) go) => pushService.listen(go);
+void listenPushMessages(void Function(String route) go) =>
+    pushService.listen(go);
 
 Future<void> handleTerminated(void Function(String route) go) =>
     pushService.handleTerminated(go);

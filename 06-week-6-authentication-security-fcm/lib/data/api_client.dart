@@ -4,9 +4,7 @@ import 'auth_repository.dart';
 import 'token_store.dart';
 
 Dio buildApiClient(TokenStore store, AuthRepository auth) {
-  final dio = Dio(
-    BaseOptions(baseUrl: 'https://example-campus-api.test'),
-  );
+  final dio = Dio(BaseOptions(baseUrl: 'https://example-campus-api.test'));
   dio.interceptors.add(
     InterceptorsWrapper(
       onRequest: (options, handler) async {
@@ -17,8 +15,7 @@ Dio buildApiClient(TokenStore store, AuthRepository auth) {
         handler.next(options);
       },
       onError: (error, handler) async {
-        final alreadyRetried =
-            error.requestOptions.extra['retried'] == true;
+        final alreadyRetried = error.requestOptions.extra['retried'] == true;
         if (error.response?.statusCode != 401 || alreadyRetried) {
           handler.next(error);
           return;

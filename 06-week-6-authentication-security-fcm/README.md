@@ -72,8 +72,6 @@ Setelah menyelesaikan codelab ini, mahasiswa mampu:
 | JWT + refresh token | Server menerbitkan access token berumur pendek dan refresh token berumur panjang | REST API milik sendiri |
 | OAuth / Google Login | Aplikasi menerima authorization code dan menukarnya melalui provider | Login sosial atau SSO kampus |
 
-Codelab ini menggunakan **mock auth provider dan JWT simulasi** agar berjalan tanpa backend. Pola repository dan refresh token tetap sama; saat migrasi ke Firebase Auth, sumber token yang diganti adalah implementasi repository.
-
 ### Access Token, Refresh Token, dan ID Token
 
 - **ID token** adalah bukti identitas pengguna dan diverifikasi backend.
@@ -419,7 +417,7 @@ Future<void> login(String email, String password) async {
 Kirim campaign dengan `title` dan `body` ke aplikasi Android saat aplikasi berada di background. Banner sistem harus muncul dan klik banner harus membuka aplikasi. Simpan bukti sebagai `screenshots/fcm-console-test.png`.
 
 <p align="center">
-  <video src="screenshots/fcm-console-test.mp4" controls width="75%" muted autoplay loop></video>
+  <video src="screenshots/fcm-console-test.mp4" controls width="50%" muted autoplay loop></video>
   <br>
   <i>Pengujian FCM dari Firebase Console</i>
 </p>
@@ -509,17 +507,17 @@ Future<void> handleTerminated(void Function(String route) go) async {
 | Terminated | Aplikasi terbuka ke rute benar melalui `getInitialMessage` | Swipe-close aplikasi, kirim, klik banner | Berhasil |
 
 <p align="center">
-  <video src="screenshots/Foreground.mp4" controls width="75%" muted autoplay loop></video>
+  <video src="screenshots/Foreground.mp4" controls width="50%" muted autoplay loop></video>
   <br>
   <i>Hasil Foreground</i>
 </p>
 <p align="center">
-  <video src="screenshots/Background.mp4" controls width="75%" muted autoplay loop></video>
+  <video src="screenshots/Background.mp4" controls width="50%" muted autoplay loop></video>
   <br>
   <i>Hasil Background</i>
 </p>
 <p align="center">
-  <video src="screenshots/Terminated.mp4" controls width="75%" muted autoplay loop></video>
+  <video src="screenshots/Terminated.mp4" controls width="50%" muted autoplay loop></video>
   <br>
   <i>Hasil Terminated</i>
 </p>
@@ -549,26 +547,56 @@ Tandai bagian yang BERBEDA untuk Android 13+ vs iOS,
 dan bagian yang tidak boleh mengakses BuildContext.
 ```
 
+### Implementasi dan Catatan Platform
+
+Implementasi final berada di `lib/messaging/push_service.dart` sebagai
+`PushService`. Service ini menyediakan permission notifikasi, token lifecycle,
+local notification foreground, deep link untuk tiga app state, topic
+subscription, dan background handler top-level.
+
+Perbedaan platform:
+
+| Platform | Hal yang wajib diperhatikan |
+| --- | --- |
+| Android 13+ | Permission notifikasi harus diminta saat runtime. Foreground memakai local notification dan emulator harus memiliki Google Play Services. |
+| Android < 13 | Permission runtime notifikasi tidak berlaku seperti Android 13+, tetapi notification channel tetap diperlukan. |
+| iOS | Permission alert, badge, dan sound harus diminta. Aktifkan Push Notifications dan Background Modes di Xcode serta konfigurasi APNs di Firebase. |
+
+`firebaseMessagingBackgroundHandler` berjalan pada isolate terpisah. Fungsi ini
+tidak boleh mengakses `BuildContext`, GoRouter, Riverpod, atau state UI.
+Navigasi dilakukan setelah klik melalui `onMessageOpenedApp`,
+`getInitialMessage`, atau callback local notification.
+
+`POST /devices` dipanggil melalui `Dio` jika backend tersedia. Pada mode
+praktikum tanpa backend, token hanya ditampilkan dalam bentuk terpotong dan
+tidak dikirim ke URL dummy.
+
 ### AI Verification Checklist
 
-- [ ] Background handler adalah fungsi top-level dengan `@pragma('vm:entry-point')`.
-- [ ] `onTokenRefresh` mengirim token baru ke backend, bukan hanya mencetaknya.
-- [ ] Foreground memakai local notification manual.
-- [ ] Klik dari foreground, background, dan terminated masuk ke rute yang benar.
-- [ ] Token atau secret tidak di-hard-code dan token penuh tidak di-log.
-- [ ] Perbaikan manual dan alasan teknis dicatat.
+- Apakah background handler berupa fungsi top-level dengan `@pragma('vm:entry-point')`? (tolak jika berupa method kelas).
+  - **Jawaban:** ya, background handler menggunakan fungsi top-level `firebaseMessagingBackgroundHandler` dan menggunakan `@pragma('vm:entry-point')`. Fungsi ini tidak mengakses `BuildContext` GoRouter, Riverpod, atau state UI.
+
+- Apakah `onTokenRefresh` benar-benar mengirim token baru ke backend, bukan hanya dicetak ke log?
+  - **Jawaban:** `onTokenRefresh` sudah ada pada `PushService.initializeTokenLifecycle()` dan mendukung pengiriman ke `POST /devices` melalui Dio. Namun, karena backend belum tersedia, aplikasi saat ini hanya menampilkan token secara terpotong di `lib/providers/auth_provider.dart`.
+
+- Apakah foreground memakai local notification manual? (tanpa ini banner tidak muncul saat aplikasi terbuka).
+  - **Jawaban:** Ya, `FirebaseMessaging.onMessage` memanggil `_showForegroundNotification()` pada `lib/messaging/push_service.dart`, lalu menampilkan notifikasi menggunakan `flutter_local_notifications`.
+
+- Apakah klik dari ketiga state (foreground/background/terminated) masuk ke rute yang benar? Buktikan dengan tabel pengujian.
+  - **Jawaban:** Ya, Foreground menggunakan local notification, background menggunakan `onMessageOpenedApp`, dan terminated menggunakan `getInitialMessage()`. Ketiganya mengarahkan ke `/pengumuman/3`. Bukti pengujian dicatat pada `docs/ai-fcm-state-testing.md`.
+
+- Apakah token/secret tidak di-hardcode dan tidak di-log penuh? Perbaiki bila AI melanggarnya.
+  - **Jawaban:** Ya, lulus dengan catatan. Access token dan refresh token disimpan menggunakan `flutter_secure_storage`. Token FCM hanya ditampilkan sebanyak 12 karakter pertama lalu `...`, token lengkap dan secret tidak ditampilkan di log atau screenshot.
 
 ### Dokumentasi AI
 
-Simpan artefak AI di folder `docs/`:
+Artefak AI di folder `docs/`:
 
 | Dokumen | Lokasi | Status |
 | --- | --- | --- |
-| Prompt yang digunakan | `docs/ai-prompt.md` | Isi setelah AI Challenge |
-| Output awal AI | `docs/ai-output-awal.md` | Isi setelah AI Challenge |
-| Daftar perbaikan manual | `docs/ai-manual-fixes.md` | Isi setelah verifikasi |
-| Hasil uji tiga app state | `docs/fcm-state-testing.md` | Isi setelah pengujian |
-| Keputusan final dan alasan teknis | `docs/ai-decision.md` | Isi setelah verifikasi |
+| Prompt yang digunakan | `docs/ai-prompt.md` |
+| Output awal AI | `docs/ai-output-awal.md` |
+| Hasil uji tiga app state | `docs/fcm-state-testing.md` |
 
 ---
 
@@ -580,15 +608,6 @@ Simpan artefak AI di folder `docs/`:
 2. Ekstrak parsing `RemoteMessage.data` ke fungsi murni `routeFromMessage(Map<String, dynamic> data)`.
 3. Pindahkan pemetaan `DioException` untuk status 401, timeout, dan offline ke `lib/data/api_errors.dart`.
 4. Pastikan UI menerima pesan ramah pengguna, bukan exception mentah atau token.
-
-Contoh fungsi route yang dapat diuji tanpa Firebase:
-
-```dart
-String routeFromMessage(Map<String, dynamic> data) {
-  final route = data['route'] as String? ?? '/';
-  return route.startsWith('/') ? route : '/$route';
-}
-```
 
 ### Testing: Unit Test Tanpa Firebase Sungguhan
 

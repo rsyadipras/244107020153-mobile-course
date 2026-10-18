@@ -26,11 +26,7 @@ Future<void> main() async {
 }
 
 class MyApp extends StatefulWidget {
-  const MyApp({
-    super.key,
-    required this.container,
-    this.enablePush = true,
-  });
+  const MyApp({super.key, required this.container, this.enablePush = true});
 
   final ProviderContainer container;
   final bool enablePush;
@@ -72,8 +68,8 @@ class _MyAppState extends State<MyApp> {
       ],
     );
     if (widget.enablePush) {
-      listenPushMessages(_router.go);
-      handleTerminated(_router.go);
+      pushService.listen(_router.go);
+      pushService.handleTerminated(_router.go);
     }
   }
 
@@ -81,6 +77,9 @@ class _MyAppState extends State<MyApp> {
   void dispose() {
     _router.dispose();
     _routerRefresh.dispose();
+    if (widget.enablePush) {
+      pushService.dispose();
+    }
     widget.container.dispose();
     super.dispose();
   }

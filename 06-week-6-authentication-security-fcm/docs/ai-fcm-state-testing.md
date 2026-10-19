@@ -29,3 +29,17 @@ Pengujian menggunakan Firebase Console dengan payload gabungan
 ### Catatan payload
 
 Pesan foreground memakai local notification manual karena banner sistem tidak otomatis muncul saat aplikasi terbuka. Pesan background dan terminated memakai notification payload agar Android menampilkan banner sistem. `data.route`digunakan untuk menentukan halaman tujuan.
+
+---
+### Hasil AI Clean Architecture
+
+#### Tabel Usulan vs Keputusan Final
+
+| Topik / Komponen         | Usulan AI                                                              | Keputusan Final                                                        | Alasan / Catatan                                                                         |
+| ------------------------ | ---------------------------------------------------------------------- | ---------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| **Struktur Folder**      | _Feature-First_ (`lib/features/...`)                                   | _Feature-First_ (`lib/features/...`)                                   | Memudahkan navigasi dan pengembangan modul secara terisolasi.                            |
+| **Pemisahan Repository** | Interface di `domain`, Implementasi di `data`                          | Interface di `domain`, Implementasi di `data`                          | Menjaga prinsip _Dependency Inversion_ agar layer domain tidak tergantung detail teknis. |
+| **Penggunaan Use Case**  | Khusus logika kompleks (`Login`, `RefreshSession`, `GetAnnouncements`) | Khusus logika kompleks (`Login`, `RefreshSession`, `GetAnnouncements`) | Mencegah _over-engineering_ dan menjaga basis kode tetap bersih dari file satu baris.    |
+| **Dependency Injection** | Terpusat menggunakan Riverpod `Provider`                               | Terpusat menggunakan Riverpod `Provider`                               | Memastikan widget terbebas dari pemanggilan konstruktor objek (_decoupling_).            |
+| **Service Messaging**    | Bertahan di `lib/messaging/push_service.dart`                          | Dipindah ke `lib/core/messaging/push_service.dart`                     | Agar seluruh utilitas lintas fitur dikelompokkan secara terpusat di dalam folder `core`. |
+

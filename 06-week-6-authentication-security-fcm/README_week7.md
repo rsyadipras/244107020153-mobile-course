@@ -648,15 +648,25 @@ flutter test
 
 ### Pertanyaan refleksi
 
-1. Mengapa interface repository harus tinggal di domain, bukan di data?
-   Apa yang rusak bila arah tersebut dibalik?
-2. Kapan use case benar-benar dibutuhkan, dan kapan repository langsung ke
-   notifier sudah cukup?
-3. Apa biaya over-engineering (use case untuk CRUD satu baris) bagi tim kecil?
-   Kapan biaya tersebut sepadan?
+1. Mengapa interface repository harus tinggal di domain, bukan di data? Apa yang rusak bila arah tersebut dibalik?
+   * **Jawaban:** Interface diletakkan di layer `domain` agar aturan bisnis yang menentukan kebutuhan data aplikasi, bukan detail teknologi luar (seperti Dio, SQLite, atau Firebase). Jika arahnya dibalik, layer `domain` menjadi terikat pada detail teknis. Akibatnya, jika teknologi penyimpanan atau jaringan diganti, kode bisnis di domain ikut rusak dan harus ditulis ulang.
+
+2. Kapan use case benar-benar dibutuhkan, dan kapan repository langsung ke notifier sudah cukup?
+   * **Jawaban:**
+     - Butuh Use Case, saat terdapat aturan bisnis khusus—seperti validasi input, penggabungan beberapa repository, *refresh token*, atau logika *sorting/filtering*.
+     - Cukup Repository Langsung, saat operasinya hanya berupa CRUD sederhana satu baris yang hanya meneruskan data dari repository ke *notifier* tanpa ada logika bisnis tambahan.
+
+3. Apa biaya over-engineering (use case untuk CRUD satu baris) bagi tim kecil? Kapan biaya tersebut sepadan?
+   * **Jawaban:**
+     - Biaya Over-Engineering, membuat terlalu banyak file redundan (*boilerplate*), navigasi kode menjadi rumit, dan memperlambat kecepatan *development*.
+     - Kapan Sepadan, saat skala aplikasi mulai membesar, anggota tim bertambah banyak, atau saat operasi CRUD tersebut mulai membutuhkan validasi kompleks dan *unit test* terisolasi.
+
 4. Bagian mana dari usulan AI yang ditolak atau disederhanakan, dan mengapa?
-5. Bagaimana dependency rule membuat use case dapat diuji tanpa database,
-   Firebase, dan jaringan?
+   * **Jawaban:**
+     - Yang Ditolak/Disederhanakan adalah usulan AI untuk membuat *use case* terpisah pada setiap fungsi CRUD satu baris, karena untuk menghindari *over-engineering* agar jumlah file proyek tidak membengkak tanpa memberikan manfaat bisnis yang nyata.
+
+5. Bagaimana dependency rule membuat use case dapat diuji tanpa database, Firebase, dan jaringan?
+   * **Jawaban:** Karena *use case* hanya bergantung pada *interface* (kontrak abstraksi) yang ada di layer `domain`, bukan pada implementasi teknis di layer `data`. Saat melakukan *unit test*, kita dapat dengan mudah menyuntikkan *Fake Repository* (data tiruan di memori) tanpa memerlukan koneksi internet, Firebase, atau database sungguhan.
 
 ---
 

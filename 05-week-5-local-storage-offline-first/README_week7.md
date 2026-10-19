@@ -128,34 +128,35 @@ rg "Repository\(|Database\(|SharedPreferences|Provider<" lib
 
 ---
 
-## Praktikum 2 — Domain dan Data
+## Praktikum 2 — Domain dan Data per Fitur
 
-### 1. Entity murni
+### 1. Entity murni (domain)
 
-Contoh entity pengumuman di
-`lib/features/announcements/domain/entities/announcement.dart`:
+Buat `lib/features/notes/domain/entities/note.dart`. Entity tidak mengimpor
+Flutter dan tidak berisi mapping SQLite/JSON:
 
 ```dart
-class Announcement {
-  const Announcement({
+class Note {
+  const Note({
     this.id,
     required this.title,
     this.body = '',
-    required this.publishedAt,
+    required this.updatedAt,
+    this.dirty = false,
   });
 
   final int? id;
   final String title;
   final String body;
-  final DateTime publishedAt;
+  final DateTime updatedAt;
+  final bool dirty;
 }
 ```
 
-Entity tidak mengimpor Flutter, Dio, Firebase, atau package storage.
+### 2. Failure dan kontrak repository (domain)
 
-### 2. Failure dan repository interface
-
-`lib/core/failures.dart` berisi kegagalan yang dapat dipahami domain:
+Buat `lib/core/failures.dart` dan
+`lib/features/notes/domain/repositories/note_repository.dart`:
 
 ```dart
 sealed class Failure {
@@ -170,120 +171,173 @@ class LocalFailure extends Failure {
 class NetworkFailure extends Failure {
   const NetworkFailure(super.message);
 }
-
-class AuthFailure extends Failure {
-  const AuthFailure(super.message);
-}
 ```
-
-Kontrak `lib/features/announcements/domain/repositories/announcement_repository.dart`:
 
 ```dart
 import '../../../../core/failures.dart';
-import '../entities/announcement.dart';
+import '../entities/note.dart';
 
-abstract class AnnouncementRepository {
-  Future<({List<Announcement> items, Failure? failure})>
-      fetchAnnouncements();
+abstract class NoteRepository {
+  Future<({List<Note> notes, Failure? failure})> fetchNotes();
+
+  Future<({Note? note, Failure? failure})> addNote({
+    required String title,
+    String body = '',
+  });
 }
 ```
 
-Kontrak berada di domain karena domain menentukan kebutuhan bisnis, bukan
-detail cara mengambil data. Implementasi data bebas memakai Dio atau sumber
-lain selama kontrak tetap terpenuhi.
+Record Dart membuat hasil sukses/gagal eksplisit tanpa exception mentah bocor
+ke presentation. Alternatif industri seperti `fpdart` atau `dartz`
+menggunakan `Either<Failure, T>` dengan pola kontrak yang sama.
 
-### 3. Model dan repository implementation
+### 3. Model dan implementasi (data)
 
-Mapping JSON hanya berada di
-`lib/features/announcements/data/models/announcement_model.dart`:
+Buat `lib/features/notes/data/models/note_model.dart`. Mapping hanya boleh
+berada di model:
 
 ```dart
-import '../../domain/entities/announcement.dart';
+import '../../domain/entities/note.dart';
 
-class AnnouncementModel extends Announcement {
-  const AnnouncementModel({
+class NoteModel extends Note {
+  const NoteModel({
     super.id,
     required super.title,
     super.body = '',
-    required super.publishedAt,
+    required super.updatedAt,
+    super.dirty = false,
   });
 
-  factory AnnouncementModel.fromJson(Map<String, Object?> json) {
-    return AnnouncementModel(
-      id: (json['id'] as num?)?.toInt(),
-      title: json['title'] as String? ?? '',
-      body: json['body'] as String? ?? '',
-      publishedAt: DateTime.tryParse(
-            json['published_at'] as String? ?? '',
+  Map<String, Object?> toMap() => {
+        'id': id,
+        'title': title,
+        'body': body,
+        'updated_at': updatedAt.toIso8601String(),
+        'dirty': dirty ? 1 : 0,
+      };
+
+  factory NoteModel.fromMap(Map<String, Object?> map) {
+    return NoteModel(
+      id: (map['id'] as num?)?.toInt(),
+      title: map['title'] as String? ?? '',
+      body: map['body'] as String? ?? '',
+      updatedAt: DateTime.tryParse(
+            map['updated_at'] as String? ?? '',
           ) ??
           DateTime.fromMillisecondsSinceEpoch(0),
+      dirty: ((map['dirty'] as num?)?.toInt() ?? 0) == 1,
     );
   }
 
-  Announcement toEntity() => Announcement(
+  Note toEntity() => Note(
         id: id,
         title: title,
         body: body,
-        publishedAt: publishedAt,
+        updatedAt: updatedAt,
+        dirty: dirty,
       );
 }
 ```
 
-`announcement_repository_impl.dart` menangkap exception teknis, melakukan
-mapping model ke entity, lalu mengembalikan `Failure`:
+Buat `lib/features/notes/data/repositories/note_repository_impl.dart`.
+Implementasi ini menjadi satu-satunya tempat yang mengimpor `sqflite`:
 
 ```dart
-class AnnouncementRepositoryImpl implements AnnouncementRepository {
-  const AnnouncementRepositoryImpl({required this.fetchJson});
+import 'package:sqflite/sqflite.dart';
+import '../../../../core/failures.dart';
+import '../../domain/entities/note.dart';
+import '../../domain/repositories/note_repository.dart';
+import '../models/note_model.dart';
 
-  final Future<List<Map<String, Object?>>> Function() fetchJson;
+class NoteRepositoryImpl implements NoteRepository {
+  NoteRepositoryImpl({required Future<Database> Function() openDb})
+      : _openDb = openDb;
+
+  final Future<Database> Function() _openDb;
 
   @override
-  Future<({List<Announcement> items, Failure? failure})>
-      fetchAnnouncements() async {
+  Future<({List<Note> notes, Failure? failure})> fetchNotes() async {
     try {
-      final rows = await fetchJson();
-      final items = rows
-          .map((row) => AnnouncementModel.fromJson(row).toEntity())
+      final db = await _openDb();
+      final rows = await db.query(
+        'notes',
+        orderBy: 'updated_at DESC',
+      );
+      final notes = rows
+          .map((row) => NoteModel.fromMap(row).toEntity())
           .toList();
-      return (items: items, failure: null);
+      return (notes: notes, failure: null);
     } catch (error) {
       return (
-        items: const <Announcement>[],
-        failure: NetworkFailure('Gagal memuat pengumuman: $error'),
+        notes: const <Note>[],
+        failure: LocalFailure('Gagal membaca catatan: $error'),
+      );
+    }
+  }
+
+  @override
+  Future<({Note? note, Failure? failure})> addNote({
+    required String title,
+    String body = '',
+  }) async {
+    try {
+      final db = await _openDb();
+      final now = DateTime.now();
+      final id = await db.insert(
+        'notes',
+        NoteModel(
+          title: title,
+          body: body,
+          updatedAt: now,
+          dirty: true,
+        ).toMap(),
+      );
+      return (
+        note: Note(
+          id: id,
+          title: title,
+          body: body,
+          updatedAt: now,
+          dirty: true,
+        ),
+        failure: null,
+      );
+    } catch (error) {
+      return (
+        note: null,
+        failure: LocalFailure('Gagal menyimpan catatan: $error'),
       );
     }
   }
 }
 ```
 
-Pada implementasi nyata, `fetchJson` dapat dibungkus oleh `ApiClient`.
-Exception Dio, Firebase, dan secure storage tidak boleh bocor ke presentation.
+Repository mengubah `NoteModel` menjadi entity melalui `.toEntity()` sebelum
+hasil data dikembalikan ke domain.
 
-### 4. Use case
+### 4. Use case: satu operasi bisnis
 
-`lib/features/announcements/domain/usecases/get_announcements.dart`:
+Buat `lib/features/notes/domain/usecases/get_notes.dart`:
 
 ```dart
 import '../../../../core/failures.dart';
-import '../entities/announcement.dart';
-import '../repositories/announcement_repository.dart';
+import '../entities/note.dart';
+import '../repositories/note_repository.dart';
 
-class GetAnnouncements {
-  const GetAnnouncements(this._repository);
+class GetNotes {
+  const GetNotes(this._repository);
 
-  final AnnouncementRepository _repository;
+  final NoteRepository _repository;
 
-  Future<({List<Announcement> items, Failure? failure})> call() {
-    return _repository.fetchAnnouncements();
+  Future<({List<Note> notes, Failure? failure})> call() {
+    return _repository.fetchNotes();
   }
 }
 ```
 
-Use case wajib ketika operasi memiliki validasi, sorting, gabungan beberapa
-repository, refresh token, atau sinkronisasi. CRUD satu baris boleh langsung
-dari repository ke notifier jika belum memiliki aturan bisnis; keputusan ini
-harus didokumentasikan agar tidak menjadi over-engineering.
+Use case diperlukan ketika operasi memiliki validasi, sorting, sinkronisasi,
+atau menggabungkan beberapa repository. CRUD satu baris boleh langsung dari
+repository ke notifier jika belum memiliki aturan bisnis.
 
 ---
 
@@ -291,95 +345,80 @@ harus didokumentasikan agar tidak menjadi over-engineering.
 
 ### 1. Dependency injection dengan Riverpod
 
-Semua wiring berada di
-`lib/features/announcements/presentation/providers/announcement_providers.dart`:
+Buat `lib/features/notes/presentation/providers/notes_providers.dart`.
+Inilah satu-satunya tempat wiring:
 
 ```dart
-final announcementRepositoryProvider =
-    Provider<AnnouncementRepository>((ref) {
-  return AnnouncementRepositoryImpl(
-    fetchJson: () => ref.watch(apiClientProvider).getAnnouncements(),
-  );
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../data/repositories/note_repository_impl.dart';
+import '../../domain/entities/note.dart';
+import '../../domain/repositories/note_repository.dart';
+import '../../domain/usecases/get_notes.dart';
+
+final noteRepositoryProvider = Provider<NoteRepository>((ref) {
+  return NoteRepositoryImpl(openDb: openNotesDb);
 });
 
-final getAnnouncementsProvider = Provider<GetAnnouncements>((ref) {
-  return GetAnnouncements(ref.watch(announcementRepositoryProvider));
+final getNotesProvider = Provider<GetNotes>((ref) {
+  return GetNotes(ref.watch(noteRepositoryProvider));
 });
 
-final announcementsProvider =
-    FutureProvider<List<Announcement>>((ref) async {
-  final result = await ref.watch(getAnnouncementsProvider).call();
+final notesProvider = FutureProvider<List<Note>>((ref) async {
+  final result = await ref.watch(getNotesProvider).call();
   if (result.failure != null) {
     throw Exception(result.failure!.message);
   }
-  return result.items;
+  return result.notes;
 });
 ```
 
-Provider `apiClientProvider` dapat ditempatkan di `core/providers.dart`.
-Saat test, provider tersebut dapat dioverride dengan fake. Widget tidak
-pernah menulis `AnnouncementRepositoryImpl()` atau `Dio()`.
+Database opener `openNotesDb` disuntikkan agar dapat diganti dengan fake saat
+test. Domain menerima abstraksi `NoteRepository`, bukan implementasi SQLite.
 
 ### 2. Halaman hanya membaca state
 
-Halaman pengumuman cukup membaca `announcementsProvider`:
+`lib/features/notes/presentation/pages/notes_page.dart` versi bersih tidak
+mengandung SQL, Dio, JSON, atau formatting tanggal mentah:
 
 ```dart
-class AnnouncementPage extends ConsumerWidget {
-  const AnnouncementPage({super.key});
+class NotesPage extends ConsumerWidget {
+  const NotesPage({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(announcementsProvider);
+    final state = ref.watch(notesProvider);
     return state.when(
-      loading: () => const Center(child: CircularProgressIndicator()),
+      loading: () => const Center(
+        child: CircularProgressIndicator(),
+      ),
       error: (error, _) => ErrorView(
         message: '$error',
-        onRetry: () => ref.invalidate(announcementsProvider),
+        onRetry: () => ref.invalidate(notesProvider),
       ),
-      data: (items) => items.isEmpty
-          ? const Center(child: Text('Belum ada pengumuman.'))
-          : AnnouncementList(items),
+      data: (notes) => notes.isEmpty
+          ? const Center(child: Text('Belum ada catatan.'))
+          : NotesList(notes),
     );
   }
 }
 ```
 
-Halaman tidak mengandung SQL, Dio, JSON, secure storage, atau formatting
-tanggal mentah.
+Halaman hanya menampilkan state dan mengirim aksi UI ke provider. Akses
+SQLite, `SharedPreferences`, serta mapping model tetap berada di data layer.
 
-### 3. Formatting dan parsing rute
+### 3. Verifikasi dependency rule
 
-Ekstrak fungsi murni ke `lib/core/format.dart` dan `lib/routes.dart`:
-
-```dart
-String formatDate(DateTime value) {
-  return '${value.day.toString().padLeft(2, '0')}/'
-      '${value.month.toString().padLeft(2, '0')}/${value.year}';
-}
-
-String? routeFromMessage(Map<String, dynamic> data) {
-  final route = data['route'];
-  return route is String && route.startsWith('/pengumuman/')
-      ? route
-      : null;
-}
-```
-
-Fungsi tersebut dapat diuji tanpa `BuildContext` atau device.
-
-### 4. Verifikasi dependency rule
-
-Semua perintah berikut harus menghasilkan nol hasil pada dua grep pertama:
+Jalankan tiga pemeriksaan ini dari folder project Week 5; dua grep pertama
+harus menghasilkan nol temuan:
 
 ```bash
-# Presentation steril dari data mentah
+# 1. Presentation steril dari data mentah
 rg "Dio\(|openDatabase|getDatabasesPath|FlutterSecureStorage|SharedPreferences\.getInstance|jsonDecode" lib/features/*/presentation lib/pages
 
-# Domain steril dari framework dan package
+# 2. Domain steril dari framework dan package
 rg "import 'package:flutter|import 'package:dio|import 'package:sqflite|import 'package:firebase" lib/features/*/domain lib/core
 
-# Static analysis dan seluruh test
+# 3. Static analysis + test
 flutter analyze
 flutter test
 ```

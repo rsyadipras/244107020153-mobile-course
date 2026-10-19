@@ -541,15 +541,13 @@ Jelaskan trade-off setiap keputusan.
   - **Jawaban:** keputusan final kami menyetujui arsitektur Feature-First Clean Architecture yang diusulkan. Alasan teknisnya: isolasi antar fitur memudahkan testing dan maintenance, pemisahan interface domain memudahkan pembuatan fake repository, serta pembatasan use case menjaga jumlah file tetap efisien tanpa boilerplate yang tidak perlu.
 
 ## Refactoring, Testing, dan Error Umum
-
 ### Refactoring challenge
 
 1. Terapkan pola yang sama pada fitur kedua: `auth` atau `announcements`.
 2. Ekstrak formatting tanggal dan parsing rute menjadi fungsi murni.
 3. Pindahkan semua exception mentah menjadi `Failure` yang ramah pengguna.
 4. Pastikan provider adalah satu-satunya tempat wiring dependency.
-5. Pastikan `push_service.dart` tidak mengakses `BuildContext`, GoRouter,
-   Riverpod, atau state UI dari background handler.
+5. Pastikan `push_service.dart` tidak mengakses `BuildContext`, GoRouter, Riverpod, atau state UI dari background handler.
 
 ### Testing use case dengan repository palsu
 
@@ -557,19 +555,29 @@ Buat `test/get_announcements_test.dart`. Domain diuji tanpa SQLite, Dio,
 Firebase, atau device:
 
 ```dart
+import 'package:flutter_test/flutter_test.dart';
+import 'package:campus_notify/core/failures.dart';
+import 'package:campus_notify/features/announcements/domain/entities/announcement.dart';
+import 'package:campus_notify/features/announcements/domain/repositories/announcement_repository.dart';
+import 'package:campus_notify/features/announcements/domain/usecases/get_announcements.dart';
+
 class FakeAnnouncementRepository implements AnnouncementRepository {
-  FakeAnnouncementRepository({
-    this.items = const [],
-    this.failure,
-  });
+  FakeAnnouncementRepository({this.items = const [], this.failure});
 
   final List<Announcement> items;
   final Failure? failure;
 
   @override
   Future<({List<Announcement> items, Failure? failure})>
-      fetchAnnouncements() async {
+  fetchAnnouncements() async {
     return (items: items, failure: failure);
+  }
+
+  @override
+  Future<({Announcement? item, Failure? failure})> fetchAnnouncementById(
+    String id,
+  ) async {
+    return (item: items.isEmpty ? null : items.first, failure: failure);
   }
 }
 
@@ -591,65 +599,52 @@ void main() {
     expect(result.items.first.title, 'Jadwal kuliah umum');
   });
 
-  test('GetAnnouncements meneruskan failure tanpa melempar', () async {
-    final repository = FakeAnnouncementRepository(
-      failure: const NetworkFailure('offline (simulasi)'),
-    );
+  test(
+    'GetAnnouncements meneruskan failure tanpa melempar exception',
+    () async {
+      final repository = FakeAnnouncementRepository(
+        failure: const NetworkFailure('offline (simulasi)'),
+      );
 
-    final result = await GetAnnouncements(repository).call();
+      final result = await GetAnnouncements(repository).call();
 
-    expect(result.failure, isA<NetworkFailure>());
-    expect(result.items, isEmpty);
-  });
+      expect(result.failure, isA<NetworkFailure>());
+      expect(result.items, isEmpty);
+    },
+  );
 }
-```
 
+```
 Jalankan:
 
 ```bash
 flutter analyze
 flutter test
 ```
+<p align="center">
+  <img src="screenshots/Hasil-testing-refactor.png" alt="hasil testing 3 grep + flutter analyze + flutter test" width="75%">
+  <br>
+  <i>Hasil testing 3 grep + flutter analyze + flutter test</i>
+</p>
 
-### Error umum
-
-| Gejala | Penyebab | Solusi |
-| --- | --- | --- |
-| Import cycle | Domain mengimpor presentation/data | Jaga arah `presentation → domain ← data` |
-| Model tidak cocok dengan entity | Repository mengembalikan model | Konversi `.toEntity()` di batas data |
-| `ref.watch` di fungsi biasa | Wiring dilakukan di luar provider/widget | Letakkan wiring di `Provider`, `Notifier`, atau `ConsumerWidget` |
-| Test memerlukan device | Use case diuji dengan impl asli | Gunakan fake yang mengimplementasikan interface domain |
-| Exception mentah tampil di UI | Mapping error belum dibuat | Ubah exception menjadi `Failure` di repository |
-| Refactor mengubah perilaku | Tidak ada snapshot dan uji manual | Commit sebelum refactor, lalu bandingkan screenshot |
-
----
-
-## Checklist Penyelesaian
-
-- [ ] Interface repository berada di `domain`.
-- [ ] Implementasi repository dan model berada di `data`.
-- [ ] Entity tidak memiliki mapping JSON/SQLite.
-- [ ] Widget tidak menginstansiasi repository, Dio, Firebase, atau storage.
-- [ ] Tiga grep sterilitas menghasilkan nol temuan.
-- [ ] Domain tidak mengimpor Flutter atau package infrastructure.
-- [ ] Minimal satu fitur penuh (`auth` atau `announcements`) sudah dipisah.
-- [ ] Fitur kedua tidak dibiarkan memiliki pelanggaran yang sama.
-- [ ] Tersedia minimal dua test use case: sukses dan failure.
-- [ ] `flutter analyze` bersih dan `flutter test` lulus.
-- [ ] Perilaku UI dan FCM tetap sama sebelum/sesudah refactor.
-- [ ] Screenshot before/after tersedia di `screenshots/`.
-- [ ] Prompt AI, usulan, keputusan final, dan alasannya tersedia di `docs/`.
+<p align="center">
+  <video controls src="screenshots/after-refactor.mp4" alt="Tampilan aplikasi setelah refactoring" width="50%" muted autoplay loop></video>
+  <br>
+  <i>Hasil refactoring</i>
+</p>
 
 ---
+### 📋 Checklist Verifikasi Mandiri
 
-## Tugas dan Refleksi
+## Checklist Verifikasi Mandiri
 
-### Mini project / Industry Challenge
+- [x] Tiga grep sterilitas (presentation & domain) nol hasil.
+- [x] Interface di domain, implementasi di data, mapping hanya di model.
+- [x] Widget tidak menginstansiasi repository; semua lewat provider.
+- [x] Aplikasi berjalan identik sebelum/sesudah refactor (bukti screenshot).
+- [x] `flutter analyze` bersih dan semua test lulus.
 
-Lanjutkan repository ini, bukan membuat project baru. Refactor minimal satu
-fitur penuh ke dalam `lib/features/<feature>/` dengan `domain`, `data`, dan
-`presentation`. Sertakan hasil grep sterilitas, dua test use case, serta
- screenshot before/after.
+## Refleksi
 
 ### Pertanyaan refleksi
 
@@ -662,17 +657,6 @@ fitur penuh ke dalam `lib/features/<feature>/` dengan `domain`, `data`, dan
 4. Bagian mana dari usulan AI yang ditolak atau disederhanakan, dan mengapa?
 5. Bagaimana dependency rule membuat use case dapat diuji tanpa database,
    Firebase, dan jaringan?
-
-### Jawaban yang diharapkan
-
-Interface tinggal di domain agar aturan bisnis tidak bergantung pada teknologi
-penyimpanan atau jaringan. Jika interface dibalik dan domain mengimpor data,
-pergantian Dio, Firebase, atau database akan memaksa perubahan domain.
-
-Use case diperlukan saat ada validasi, penggabungan repository, sorting,
-refresh token, atau sinkronisasi. Untuk CRUD sederhana, repository langsung ke
-notifier dapat lebih mudah dipelihara. Abstraksi tambahan sepadan ketika
-kompleksitas bisnis dan kebutuhan testing mulai meningkat.
 
 ---
 

@@ -1,11 +1,11 @@
-# Week 07 — Clean Architecture Feature-First
+# Week 07 - Clean Architecture Feature-First
 
 <p align="left">
   <img src="https://img.shields.io/badge/Flutter-02569B?style=for-the-badge&logo=flutter&logoColor=white" alt="Flutter">
   <img src="https://img.shields.io/badge/Dart-0175C2?style=for-the-badge&logo=dart&logoColor=white" alt="Dart">
   <img src="https://img.shields.io/badge/Riverpod-2E7D32?style=for-the-badge" alt="Riverpod">
   <img src="https://img.shields.io/badge/Clean%20Architecture-1565C0?style=for-the-badge" alt="Clean Architecture">
-  <img src="https://img.shields.io/badge/Status-In%20Progress-orange?style=for-the-badge" alt="Status">
+  <img src="https://img.shields.io/badge/Status-Done-green?style=for-the-badge" alt="Status">
 </p>
 
 > Dokumentasi praktikum Pemrograman Mobile — refactor project Minggu 6
@@ -29,8 +29,8 @@
 - [Praktikum 3 — Presentation, DI, dan Verifikasi](#praktikum-3--presentation-di-dan-verifikasi)
 - [AI Challenge](#ai-challenge)
 - [Refactoring, Testing, dan Error Umum](#refactoring-testing-dan-error-umum)
-- [Checklist Penyelesaian](#checklist-penyelesaian)
-- [Tugas dan Refleksi](#tugas-dan-refleksi)
+- [Checklist Verifikasi Mandiri](#checklist-verifikasi-mandiri)
+- [Refleksi](#refleksi)
 
 ---
 
@@ -195,6 +195,8 @@ entity pengumuman. Namun service tersebut harus dipanggil melalui wiring atau
 provider, bukan dibuat dari halaman.
 
 ---
+> 📌 **Catatan Implementasi Praktikum:**
+> Praktikum minggu ini diimplementasikan menggunakan basis proyek dari **Minggu 5**. Dokumentasi lengkap terkait refactoring proyek Minggu 5 dapat dilihat pada [README Minggu 5](../05-week-5-local-storage-offline-first/README_week7.md).
 
 ## Praktikum 1 — Audit Layer
 
@@ -634,8 +636,6 @@ flutter test
 </p>
 
 ---
-### 📋 Checklist Verifikasi Mandiri
-
 ## Checklist Verifikasi Mandiri
 
 - [x] Tiga grep sterilitas (presentation & domain) nol hasil.
@@ -645,7 +645,6 @@ flutter test
 - [x] `flutter analyze` bersih dan semua test lulus.
 
 ## Refleksi
-
 ### Pertanyaan refleksi
 
 1. Mengapa interface repository harus tinggal di domain, bukan di data? Apa yang rusak bila arah tersebut dibalik?
@@ -669,10 +668,3 @@ flutter test
    * **Jawaban:** Karena *use case* hanya bergantung pada *interface* (kontrak abstraksi) yang ada di layer `domain`, bukan pada implementasi teknis di layer `data`. Saat melakukan *unit test*, kita dapat dengan mudah menyuntikkan *Fake Repository* (data tiruan di memori) tanpa memerlukan koneksi internet, Firebase, atau database sungguhan.
 
 ---
-
-## Referensi Project
-
-- Implementasi sumber: [README Minggu 6](README.md)
-- Dokumentasi AI dan pengujian FCM: [folder docs](docs/)
-- Kode aplikasi: [folder lib](lib/)
-- Test: [folder test](test/)

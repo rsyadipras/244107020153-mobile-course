@@ -3,8 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'data/providers/notes_providers.dart';
+import 'features/notes/presentation/pages/notes_page.dart';
 import 'pages/note_detail_page.dart';
-import 'pages/notes_page.dart';
 
 void main() {
   runApp(const ProviderScope(child: OfflineNotesApp()));

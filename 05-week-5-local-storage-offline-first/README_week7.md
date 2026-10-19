@@ -5,7 +5,7 @@
   <img src="https://img.shields.io/badge/Dart-0175C2?style=for-the-badge&logo=dart&logoColor=white" alt="Dart">
   <img src="https://img.shields.io/badge/Riverpod-2E7D32?style=for-the-badge" alt="Riverpod">
   <img src="https://img.shields.io/badge/Clean%20Architecture-1565C0?style=for-the-badge" alt="Clean Architecture">
-  <img src="https://img.shields.io/badge/Status-In%20Progress-orange?style=for-the-badge" alt="Status">
+  <img src="https://img.shields.io/badge/Status-done-green?style=for-the-badge" alt="Status">
 </p>
 
 > Dokumentasi praktikum Pemrograman Mobile — refactor project Week 5
@@ -72,6 +72,7 @@ Sebelum refactor, buat snapshot:
 git add 05-week-5-local-storage-offline-first
 git commit -m "chore: snapshot before clean architecture"
 ```
+
 ---
 
 ## Praktikum 1 — Audit Layer
@@ -120,6 +121,7 @@ rg "fromMap|toMap|jsonDecode|toIso8601String|DateFormat" lib
 # Instansiasi manual yang membocorkan DI
 rg "Repository\(|Database\(|SharedPreferences|Provider<" lib
 ```
+
 <p align="center">
   <img src="screenshots\bef-audit3.png" width="60%" alt="ripgrep-audit 3">
 <br>
@@ -346,13 +348,14 @@ repository ke notifier jika belum memiliki aturan bisnis.
 ### 1. Dependency injection dengan Riverpod
 
 Buat `lib/features/notes/presentation/providers/notes_providers.dart`.
-Inilah satu-satunya tempat wiring:
 
 ```dart
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../data/repositories/note_repository_impl.dart';
+import '../../../../data/local/db.dart';
+import '../../data/repositories/note_repositories_impl.dart';
 import '../../domain/entities/note.dart';
 import '../../domain/repositories/note_repository.dart';
+import '../../domain/usecases/add_note.dart';
 import '../../domain/usecases/get_notes.dart';
 
 final noteRepositoryProvider = Provider<NoteRepository>((ref) {
@@ -363,6 +366,10 @@ final getNotesProvider = Provider<GetNotes>((ref) {
   return GetNotes(ref.watch(noteRepositoryProvider));
 });
 
+final addNoteProvider = Provider<AddNote>((ref) {
+  return AddNote(ref.watch(noteRepositoryProvider));
+});
+
 final notesProvider = FutureProvider<List<Note>>((ref) async {
   final result = await ref.watch(getNotesProvider).call();
   if (result.failure != null) {
@@ -370,6 +377,70 @@ final notesProvider = FutureProvider<List<Note>>((ref) async {
   }
   return result.notes;
 });
+
+final dirtyCountProvider = FutureProvider<int>((ref) async {
+  final result = await ref.watch(noteRepositoryProvider).countDirty();
+  if (result.failure != null) {
+    throw Exception(result.failure!.message);
+  }
+  return result.count;
+});
+
+final notesActionsProvider = Provider<NotesActions>((ref) {
+  return NotesActions(ref);
+});
+
+class NotesActions {
+  const NotesActions(this._ref);
+
+  final Ref _ref;
+
+  Future<void> addNote({
+    required String title,
+    String body = '',
+  }) async {
+    final result = await _ref.read(addNoteProvider).call(
+          title: title,
+          body: body,
+        );
+    if (result.failure != null) {
+      throw Exception(result.failure!.message);
+    }
+    _invalidateNotes();
+  }
+
+  Future<void> deleteNote(int id) async {
+    final failure = await _ref.read(noteRepositoryProvider).deleteNote(id);
+    if (failure != null) {
+      throw Exception(failure.message);
+    }
+    _invalidateNotes();
+  }
+
+  Future<int> syncNotes() async {
+    final dirtyResult = await _ref.read(noteRepositoryProvider).countDirty();
+    if (dirtyResult.failure != null) {
+      throw Exception(dirtyResult.failure!.message);
+    }
+    if (dirtyResult.count == 0) {
+      return 0;
+    }
+
+    await Future<void>.delayed(const Duration(seconds: 1));
+    final failure = await _ref.read(noteRepositoryProvider).markAllSynced();
+    if (failure != null) {
+      throw Exception(failure.message);
+    }
+    _invalidateNotes();
+    return dirtyResult.count;
+  }
+
+  void _invalidateNotes() {
+    _ref
+      ..invalidate(notesProvider)
+      ..invalidate(dirtyCountProvider);
+  }
+}
 ```
 
 Database opener `openNotesDb` disuntikkan agar dapat diganti dengan fake saat
@@ -381,31 +452,224 @@ test. Domain menerima abstraksi `NoteRepository`, bukan implementasi SQLite.
 mengandung SQL, Dio, JSON, atau formatting tanggal mentah:
 
 ```dart
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import '../providers/notes_providers.dart';
+import '../../../../pages/cached_posts_page.dart';
+import '../../../../pages/setting_page.dart';
+
 class NotesPage extends ConsumerWidget {
   const NotesPage({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(notesProvider);
+    final dirtyCount = ref.watch(dirtyCountProvider);
     return state.when(
-      loading: () => const Center(
-        child: CircularProgressIndicator(),
+      loading: () => Scaffold(
+        appBar: AppBar(title: const Text('Catatan Offline')),
+        body: const Center(child: CircularProgressIndicator()),
+        floatingActionButton: FloatingActionButton.extended(
+          onPressed: null,
+          icon: const Icon(Icons.add),
+          label: const Text('Tambah'),
+        ),
       ),
-      error: (error, _) => ErrorView(
-        message: '$error',
-        onRetry: () => ref.invalidate(notesProvider),
+      error: (error, _) => Scaffold(
+        appBar: AppBar(title: const Text('Catatan Offline')),
+        body: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('Gagal membaca catatan: $error'),
+              const SizedBox(height: 12),
+              FilledButton(
+                onPressed: () => ref.invalidate(notesProvider),
+                child: const Text('Coba lagi'),
+              ),
+            ],
+          ),
+        ),
+        floatingActionButton: FloatingActionButton.extended(
+          onPressed: null,
+          icon: const Icon(Icons.add),
+          label: const Text('Tambah'),
+        ),
       ),
-      data: (notes) => notes.isEmpty
-          ? const Center(child: Text('Belum ada catatan.'))
-          : NotesList(notes),
+      data: (notes) => Scaffold(
+        appBar: AppBar(
+          title: const Text('Catatan Offline'),
+          actions: [
+            IconButton(
+              tooltip: 'Cache posts',
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const CachedPostsPage(),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.cloud_outlined),
+            ),
+            IconButton(
+              tooltip: 'Pengaturan',
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const SettingsPage()),
+                );
+              },
+              icon: const Icon(Icons.settings_outlined),
+            ),
+            dirtyCount.when(
+              loading: () => const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16),
+                child: SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+              ),
+              error: (_, _) => const Icon(Icons.error_outline),
+              data: (count) => Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: Center(child: Text('Belum sync: $count')),
+              ),
+            ),
+            IconButton(
+              tooltip: 'Sinkronkan catatan',
+              onPressed: () => _sync(context, ref),
+              icon: const Icon(Icons.sync),
+            ),
+          ],
+        ),
+        body: notes.isEmpty
+            ? const Center(child: Text('Belum ada catatan.'))
+            : RefreshIndicator(
+                onRefresh: () async => ref.invalidate(notesProvider),
+                child: ListView.separated(
+                  itemCount: notes.length,
+                  separatorBuilder: (_, _) => const Divider(height: 1),
+                  itemBuilder: (context, index) {
+                    final note = notes[index];
+                    return ListTile(
+                      onTap: () => context.push('/note/${note.id}'),
+                      title: Text(note.title),
+                      subtitle: Text(
+                        note.body.isEmpty ? 'Tanpa isi' : note.body,
+                      ),
+                      leading: note.dirty
+                          ? const Icon(Icons.cloud_upload_outlined)
+                          : const Icon(Icons.check_circle_outline),
+                      trailing: IconButton(
+                        tooltip: 'Hapus catatan',
+                        onPressed: () => _delete(context, ref, note.id!),
+                        icon: const Icon(Icons.delete_outline),
+                      ),
+                    );
+                  },
+                ),
+              ),
+        floatingActionButton: FloatingActionButton.extended(
+          onPressed: () => _add(context, ref),
+          icon: const Icon(Icons.add),
+          label: const Text('Tambah'),
+        ),
+      ),
     );
+  }
+
+  Future<void> _sync(BuildContext context, WidgetRef ref) async {
+    try {
+      final count = await ref.read(notesActionsProvider).syncNotes();
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            count == 0
+                ? 'Tidak ada catatan untuk disinkronkan.'
+                : '$count catatan berhasil disinkronkan.',
+          ),
+        ),
+      );
+    } catch (error) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Gagal menyinkronkan: $error')),
+      );
+    }
+  }
+
+  Future<void> _delete(
+    BuildContext context,
+    WidgetRef ref,
+    int id,
+  ) async {
+    try {
+      await ref.read(notesActionsProvider).deleteNote(id);
+    } catch (error) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Gagal menghapus catatan: $error')),
+      );
+    }
+  }
+
+  Future<void> _add(BuildContext context, WidgetRef ref) async {
+    final titleController = TextEditingController();
+    final bodyController = TextEditingController();
+    try {
+      final result = await showDialog<({String title, String body})>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Tambah catatan'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: titleController,
+                autofocus: true,
+                decoration: const InputDecoration(labelText: 'Judul'),
+              ),
+              TextField(
+                controller: bodyController,
+                decoration: const InputDecoration(labelText: 'Isi catatan'),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Batal'),
+            ),
+            FilledButton(
+              onPressed: () {
+                final title = titleController.text.trim();
+                if (title.isEmpty) return;
+                Navigator.pop(
+                  context,
+                  (title: title, body: bodyController.text.trim()),
+                );
+              },
+              child: const Text('Simpan'),
+            ),
+          ],
+        ),
+      );
+      if (result == null) return;
+      await ref.read(notesActionsProvider).addNote(
+            title: result.title,
+            body: result.body,
+          );
+    } finally {
+      titleController.dispose();
+      bodyController.dispose();
+    }
   }
 }
 ```
-
-Halaman hanya menampilkan state dan mengirim aksi UI ke provider. Akses
-SQLite, `SharedPreferences`, serta mapping model tetap berada di data layer.
-
 ### 3. Verifikasi dependency rule
 
 Jalankan tiga pemeriksaan ini dari folder project Week 5; dua grep pertama
@@ -413,15 +677,27 @@ harus menghasilkan nol temuan:
 
 ```bash
 # 1. Presentation steril dari data mentah
-rg "Dio\(|openDatabase|getDatabasesPath|FlutterSecureStorage|SharedPreferences\.getInstance|jsonDecode" lib/features/*/presentation lib/pages
+rg "Dio\(|openDatabase|getDatabasesPath|FlutterSecureStorage|SharedPreferences\.getInstance|jsonDecode" lib/features/notes/presentation lib/pages
 
 # 2. Domain steril dari framework dan package
-rg "import 'package:flutter|import 'package:dio|import 'package:sqflite|import 'package:firebase" lib/features/*/domain lib/core
+rg "import 'package:flutter|import 'package:dio|import 'package:sqflite|import 'package:firebase" lib/features/notes/domain lib/core
 
 # 3. Static analysis + test
 flutter analyze
 flutter test
 ```
+
+<p align="center">
+  <img src="screenshots\verif-rule.png" width="80%" alt="flutter analyze">
+<br>
+<i>Hasil verifikasi rule</i>
+</p>
+
+<p align="center">
+  <video src="screenshots\after-refactoring.mp4" width="50%" muted autoplay loop></video>
+<br>
+<i>Hasil setelah refactor clean architecture</i>
+</p>
 
 Definisi selesai: aplikasi berjalan sama seperti sebelum refactor, hasil grep
 bersih, `flutter analyze` bersih, test hijau, dan screenshot before/after
